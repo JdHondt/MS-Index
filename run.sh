@@ -16,7 +16,7 @@ seed=1
 parallel=false
 
 java \
--cp target/MSIndex-1.0-jar-with-dependencies.jar \
+-cp MSIndex-1.0-jar-with-dependencies.jar \
 io/github/Main \
 $algorithmType \
 $dataPath \
