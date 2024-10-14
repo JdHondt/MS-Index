@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>MSeg</artifactId>
+    <artifactId>MSIndex</artifactId>
     <version>1.0</version>
 
     <dependencies>

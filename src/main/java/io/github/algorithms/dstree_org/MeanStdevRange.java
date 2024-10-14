@@ -1,0 +1,18 @@
+package io.github.algorithms.dstree_org;
+
+/**
+ * Created by IntelliJ IDEA.
+ * User: wangyang
+ * Date: 11-7-5
+ * Time: 下午8:11
+ * To change this template use File | Settings | File Templates.
+ */
+public class MeanStdevRange implements IRange {
+    // 每一段的QoS
+    public double calc(Sketch sketch, int len) {
+        final double mean_width = sketch.indicators[0] - sketch.indicators[1];
+        final double stdev_upper = sketch.indicators[2];
+        final double stdev_lower = sketch.indicators[3];
+        return len * (mean_width * mean_width + stdev_upper * stdev_upper);
+    }
+}
