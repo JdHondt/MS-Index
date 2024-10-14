@@ -1,13 +1,12 @@
 package net.jelter.utils.rtreemulti.internal;
 
 import com.github.davidmoten.guavamini.Preconditions;
-import net.jelter.algorithms.multistindex.MinimumBoundingRectangle;
+import net.jelter.algorithms.msindex.MinimumBoundingRectangle;
 import net.jelter.utils.rtreemulti.Context;
 import net.jelter.utils.rtreemulti.Entry;
 import net.jelter.utils.rtreemulti.Node;
 import net.jelter.utils.rtreemulti.NonLeaf;
 import net.jelter.utils.rtreemulti.geometry.Geometry;
-import net.jelter.utils.rtreemulti.geometry.Rectangle;
 
 import java.io.Serializable;
 import java.util.List;

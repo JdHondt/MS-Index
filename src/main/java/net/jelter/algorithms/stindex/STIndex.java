@@ -1,8 +1,7 @@
 package net.jelter.algorithms.stindex;
 
-import net.jelter.algorithms.multistindex.BoundedPriorityQueue;
+import net.jelter.algorithms.msindex.BoundedPriorityQueue;
 import net.jelter.utils.*;
-import net.jelter.algorithms.multistindex.segmentation.Segmentation;
 import net.jelter.io.DataManager;
 import com.github.davidmoten.rtreemulti.Entry;
 import com.github.davidmoten.rtreemulti.Node;

@@ -2,8 +2,6 @@ package net.jelter.algorithms.stindex;
 
 import com.github.davidmoten.rtreemulti.geometry.Point;
 import com.github.davidmoten.rtreemulti.geometry.Rectangle;
-import net.jelter.algorithms.multistindex.MinimumBoundingRectangle;
-import net.jelter.algorithms.multistindex.segmentation.Segmentation;
 import net.jelter.io.DataManager;
 import com.github.davidmoten.rtreemulti.Entry;
 import com.github.davidmoten.rtreemulti.geometry.Geometry;

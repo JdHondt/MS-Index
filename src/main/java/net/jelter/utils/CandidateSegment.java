@@ -1,7 +1,7 @@
 package net.jelter.utils;
 
 import lombok.Getter;
-import net.jelter.algorithms.multistindex.MinimumBoundingRectangle;
+import net.jelter.algorithms.msindex.MinimumBoundingRectangle;
 import org.apache.commons.math3.util.FastMath;
 
 import java.io.Serializable;

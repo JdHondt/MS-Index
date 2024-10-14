@@ -1,10 +1,8 @@
 package net.jelter.algorithms;
 
 import lombok.RequiredArgsConstructor;
-import net.jelter.algorithms.dstree_org.DSTreeOrg;
-import net.jelter.algorithms.dstree_org.MVDSTreeOrg;
 import net.jelter.io.DataManager;
-import net.jelter.utils.TeunTuple3;
+import net.jelter.utils.MSTuple3;
 import pl.edu.icm.jlargearrays.ConcurrencyUtils;
 
 import java.io.File;
@@ -130,15 +128,15 @@ public abstract class Algorithm {
         for (int i = 0; i < queries.length; i++) {
             long lstart = System.currentTimeMillis();
             logger.info(String.format("Querying %d/%d", i, queries.length));
-            final List<TeunTuple3> results = kNN(K, queries[i]);
+            final List<MSTuple3> results = kNN(K, queries[i]);
             if (printResults) {
 //                Sort results by distance
-                results.sort(Comparator.comparingDouble(TeunTuple3::distance));
+                results.sort(Comparator.comparingDouble(MSTuple3::distance));
                 logger.info(String.format("Results for query %d/%d: ", i, queries.length) + results.toString());
             }
             if (runtimeMode == RuntimeMode.CORRECTNESS) {
-                final List<TeunTuple3> bruteForceResult = new BruteForce().kNN(K, queries[i]);
-                bruteForceResult.sort(Comparator.comparingDouble(TeunTuple3::distance));
+                final List<MSTuple3> bruteForceResult = new BruteForce().kNN(K, queries[i]);
+                bruteForceResult.sort(Comparator.comparingDouble(MSTuple3::distance));
                 for (int j = 0; j < K; j++) {
                     if (!bruteForceResult.get(j).equals(results.get(j))) {
                         logger.severe(bruteForceResult.get(j).toString() + " != " + results.get(j).toString());
@@ -153,7 +151,7 @@ public abstract class Algorithm {
         }
     }
 
-    public abstract List<TeunTuple3> kNN(int k, double[][] query);
+    public abstract List<MSTuple3> kNN(int k, double[][] query);
 
     public String getIndexPath() {
 //        Make folder index_caches if it does not exist
@@ -164,7 +162,7 @@ public abstract class Algorithm {
 
         return "index_caches/" + String.join("_",
                 algorithmType.toString(),
-                datasetType.toString(),
+                datasetName.toString(),
                 String.valueOf(N),
                 String.valueOf(maxM),
                 String.valueOf(seed),

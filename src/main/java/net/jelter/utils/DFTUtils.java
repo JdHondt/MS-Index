@@ -1,8 +1,7 @@
 package net.jelter.utils;
 
-import net.jelter.algorithms.mseg.KMeans;
-import net.jelter.algorithms.multistindex.segmentation.SegmentMethods;
-import net.jelter.algorithms.multistindex.segmentation.Segmentation;
+import net.jelter.algorithms.msindex.segmentation.SegmentMethods;
+import net.jelter.algorithms.msindex.segmentation.Segmentation;
 import net.jelter.io.DataManager;
 import net.jelter.utils.rtreemulti.Entry;
 import net.jelter.utils.rtreemulti.geometry.Geometry;
@@ -149,10 +148,10 @@ public class DFTUtils {
         return lib.getStream(IntStream.range(0, N).boxed())
                 .flatMap(i -> {
                     FourierTrail fourierTrail = DFTUtils.getFourierTrail(i, kMeans);
-                    List<Entry<CandidateSegment, Geometry>> segments = Segmentation.get(mstSegmentMethod).segment(i, fourierTrail);
+                    List<Entry<CandidateSegment, Geometry>> segments = Segmentation.get(segmentMethod).segment(i, fourierTrail);
 
 //                    Update stats
-                    if (mstSegmentMethod != SegmentMethods.ADHOC) {
+                    if (segmentMethod != SegmentMethods.ADHOC) {
                         nSegments.getAndAdd(segments.size());
                     }
 
@@ -296,7 +295,7 @@ public class DFTUtils {
 
 
     public static void updateTopKWithMASS(List<CandidateSegment> candidateSegments, double[][][] qNorms, double[] querySumOfSquares,
-                                          PriorityBlockingQueue<TeunTuple3> topK, int k){
+                                          PriorityBlockingQueue<MSTuple3> topK, int k){
         for (CandidateSegment segment: candidateSegments){
             final double[] distances = DFTUtils.MASS(segment, qNorms, querySumOfSquares);
             final int start = segment.getStart();
@@ -305,7 +304,7 @@ public class DFTUtils {
             for (int i = 0; i < distances.length; i++) {
                 final double distance = distances[i];
                 if (topK.size() < k || distance < topK.peek().distance()) {
-                    topK.add(new TeunTuple3(distance, segment.getTimeSeriesIndex(), start + i));
+                    topK.add(new MSTuple3(distance, segment.getTimeSeriesIndex(), start + i));
                     if (topK.size() > k) {
                         topK.poll();
                     }

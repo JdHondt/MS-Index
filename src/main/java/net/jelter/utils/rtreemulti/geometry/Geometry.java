@@ -1,6 +1,6 @@
 package net.jelter.utils.rtreemulti.geometry;
 
-import net.jelter.algorithms.multistindex.MinimumBoundingRectangle;
+import net.jelter.algorithms.msindex.MinimumBoundingRectangle;
 
 import java.io.Serializable;
 

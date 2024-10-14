@@ -113,7 +113,7 @@ public class MVDSTreeOrg extends Algorithm implements Serializable {
     }
 
     //    General merging algorithm from the paper. Named BaselineQuery in the paper
-    public List<TeunTuple3> kNN(int k, double[][] query) {
+    public List<MSTuple3> kNN(int k, double[][] query) {
         long start = System.currentTimeMillis();
         //        Get approximate kNN for each index in parallel
         final List<TimeSeries> candidates = lib.getStream(IntStream.of(selectedVariatesIdx).boxed())
@@ -146,7 +146,7 @@ public class MVDSTreeOrg extends Algorithm implements Serializable {
         long _setUpTime = System.currentTimeMillis();
         setUpTime += _setUpTime - start;
 
-        final PriorityBlockingQueue<TeunTuple3> topKTracking = new PriorityBlockingQueue<>(k, TeunTuple3.compareByDistanceReversed());
+        final PriorityBlockingQueue<MSTuple3> topKTracking = new PriorityBlockingQueue<>(k, MSTuple3.compareByDistanceReversed());
 //        Get final topK candidates
         final List<TimeSeries> entries = lib.getStream(IntStream.of(selectedVariatesIdx).boxed())
                 .flatMap(i -> {
@@ -182,9 +182,9 @@ public class MVDSTreeOrg extends Algorithm implements Serializable {
                     }
 
                     if (topKTracking.size() < k) {
-                        topKTracking.add(new TeunTuple3(dist, timeSeries, subSequenceNr));
+                        topKTracking.add(new MSTuple3(dist, timeSeries, subSequenceNr));
                     } else if (dist < topKTracking.peek().distance()) {
-                        topKTracking.add(new TeunTuple3(dist, timeSeries, subSequenceNr));
+                        topKTracking.add(new MSTuple3(dist, timeSeries, subSequenceNr));
                         topKTracking.poll();
                     }
                 });

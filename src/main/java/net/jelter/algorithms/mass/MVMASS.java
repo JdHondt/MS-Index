@@ -4,7 +4,7 @@ import net.jelter.io.DataManager;
 import net.jelter.algorithms.Algorithm;
 import net.jelter.utils.CandidateSegment;
 import net.jelter.utils.DFTUtils;
-import net.jelter.utils.TeunTuple3;
+import net.jelter.utils.MSTuple3;
 import net.jelter.utils.lib;
 
 import java.io.*;
@@ -19,13 +19,13 @@ import static net.jelter.utils.Parameters.nSubsequences;
 public class MVMASS extends Algorithm {
     double[][][] timeseriesFFTs; // shape (N, dimensions, coefficients)
 
-    public List<TeunTuple3> kNN(int k, double[][] query) {
+    public List<MSTuple3> kNN(int k, double[][] query) {
         subsequencesExhChecked.getAndAdd(nSubsequences);
         segmentsUnderThreshold.getAndAdd(N);
 
         final double[] querySumOfSquares = DFTUtils.getSumsOfSquares(query);
         final double[][][] qNorms = DFTUtils.getQNorms(query);
-        final PriorityBlockingQueue<TeunTuple3> topK = new PriorityBlockingQueue<>(k, TeunTuple3.compareByDistanceReversed());
+        final PriorityBlockingQueue<MSTuple3> topK = new PriorityBlockingQueue<>(k, MSTuple3.compareByDistanceReversed());
 
         lib.getStream(IntStream.range(0, N).boxed()).forEach(n -> {
             if (!DataManager.supportsQuery(n)) {
@@ -54,15 +54,15 @@ public class MVMASS extends Algorithm {
 //                Iteratively add to topk
             for (int j = 0; j < distances.length; j++) {
                 if (topK.size() < k) {
-                    topK.add(new TeunTuple3(distances[j], n, j));
+                    topK.add(new MSTuple3(distances[j], n, j));
                 } else if (distances[j] < topK.peek().distance()) {
-                    topK.add(new TeunTuple3(distances[j], n, j));
+                    topK.add(new MSTuple3(distances[j], n, j));
                     topK.poll();
                 }
             }
         });
 
-        return topK.stream().sorted(TeunTuple3.compareByDistance()).collect(Collectors.toList());
+        return topK.stream().sorted(MSTuple3.compareByDistance()).collect(Collectors.toList());
     }
 
 

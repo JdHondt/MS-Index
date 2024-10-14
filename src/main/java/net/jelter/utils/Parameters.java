@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import net.jelter.algorithms.AlgorithmType;
-import net.jelter.algorithms.multistindex.MissingValueStrategy;
-import net.jelter.algorithms.multistindex.segmentation.SegmentMethods;
+import net.jelter.algorithms.msindex.PartitionStrategy;
+import net.jelter.algorithms.msindex.segmentation.SegmentMethods;
 import org.jtransforms.fft.DoubleFFT_1D;
 
 import java.io.File;
@@ -34,7 +34,7 @@ public class Parameters {
 
     public static AlgorithmType algorithmType = AlgorithmType.MASS; // Index algorithmType
     public static String dataPath = "/home/data";
-    public static DatasetType datasetType = DatasetType.STOCKS;
+    public static String datasetName;
     public static boolean queryFromDataset = true; // If false, use a random walk
     public static int N = 100; // # Time series = min(#dataset, maxN)
     public static int maxM = (int) 1e6; // # Maximum length of Time series
@@ -43,32 +43,32 @@ public class Parameters {
     public static boolean normalize = false; // z-normalize the dataset and query (currently doesn't work when false)
     public static int nQueries = 10; // # Queries
     public static RuntimeMode runtimeMode = RuntimeMode.FULL_NO_STORE; // Index, Query (and possibly also store index), QueryNoStore (doesn't store index)
-    public static boolean computeOptimalPlan = true; // For Teun index
-    public static int kMeansClusters = 0;
+    public static boolean computeOptimalPlan = true; // For MS index
+    public static int kMeansClusters = 1;
     public static double queryNoiseEps = .1; // For both query and synthetic dataset
-    public static double indexLeafSizePercentage = 0; // For the trees, capacity per node in percentage of subsequences
+    public static double indexLeafSizePercentage = 0.0005; // For the trees, capacity per node in percentage of subsequences
     public static int indexLeafSize; // Derived; absolute amount of subsequences per node
     public static int experimentId = 0; // experiment id
     public static int seed = 0; // Random seed
     public static double datasetSize;
-    public static int selectedVariates;
+    public static int nQueryChannels;
     public static int[] selectedVariatesIdx;
     public static double percentageVariatesUsed = 1;
-    public static MissingValueStrategy missingValueStrategy;
+    public static PartitionStrategy partitionStrategy = PartitionStrategy.VARIANCE;
 
     @Hide
     public static Random random;
     public static boolean parallel = false; // Use parallelism
 
     //    FFT-related
-    public static String fftConfigPath; // The path to the json file containing the covered distance by each coefficient and each channel
-    public static double fftCoveredDistance; // The desired distance covered by the FFT coefficients
+    public static String fftConfigPath = "resources"; // The path to the json file containing the covered distance by each coefficient and each channel
+    public static double fftCoveredDistance = -1; // The desired distance covered by the FFT coefficients
     public static int[] fftCoefficients; // DERIVED - the idx of the coefficients to use in fourier transform
     @Hide public static double[] coeffWeights; // DERIVED - shape=(dimensions * nCoefficients * 2) - the covered distance (in percentage) by each coefficient for each dimension
 
     //    Specifically for MST
-    public static SegmentMethods mstSegmentMethod = SegmentMethods.FALOUTSOS;
-    public static double mstSegmentParameter;
+    public static SegmentMethods segmentMethod = SegmentMethods.ADHOC;
+    public static double segmentParameter = 0;
 
     //    Set later
     @Hide public static ArrayList<Path> variatePaths = new ArrayList<>();
@@ -115,10 +115,13 @@ public class Parameters {
     //    Defaults
     public static boolean printResults = true; // Print results to console
     public static String outputPath = "output"; // Output path for results
-    public static boolean indexing = false;
+    public static boolean indexing = true;
 
     public static void setDependentParametersPreLoad() {
         newRandom();
+
+//        Set dataset name to basename of datapath
+        datasetName = new File(dataPath).getName();
     }
 
     public static void setDependentParametersPostLoad() {
@@ -131,7 +134,7 @@ public class Parameters {
 
 
 //        FFT config (only for fft-based algorithms
-        if (Arrays.asList(AlgorithmType.ST_INDEX, AlgorithmType.MSEG, AlgorithmType.MULTI_ST_INDEX, AlgorithmType.SEGMENTS_ONLY).contains(algorithmType)) {
+        if (Arrays.asList(AlgorithmType.ST_INDEX, AlgorithmType.MSINDEX).contains(algorithmType)) {
             setFFTConfig(fftConfigPath);
         }
 
@@ -140,19 +143,19 @@ public class Parameters {
             setLeafSize(nSubsequences, indexLeafSizePercentage);
         }
 
-        if (Arrays.asList(AlgorithmType.MASS,AlgorithmType.MSEG,AlgorithmType.MULTI_ST_INDEX,AlgorithmType.SEGMENTS_ONLY).contains(algorithmType)) {
+        if (Arrays.asList(AlgorithmType.MASS,AlgorithmType.MSINDEX).contains(algorithmType)) {
             setPrecomputedFFTs();
         }
-        if (Arrays.asList(AlgorithmType.MSEG,AlgorithmType.ST_INDEX,AlgorithmType.MULTI_ST_INDEX,AlgorithmType.SEGMENTS_ONLY).contains(algorithmType)) {
+        if (Arrays.asList(AlgorithmType.ST_INDEX,AlgorithmType.MSINDEX).contains(algorithmType)) {
             setPrecomputedAngles();
         }
     }
 
     private static void setSelectedVariates(){
-        if (selectedVariates == -1 || selectedVariates > dimensions){ selectedVariates = dimensions; }
-        if (selectedVariates == 0){ selectedVariates = 1; }
+        if (nQueryChannels == -1 || nQueryChannels > dimensions){ nQueryChannels = dimensions; }
+        if (nQueryChannels == 0){ nQueryChannels = 1; }
 
-        selectedVariatesIdx = IntStream.range(0, selectedVariates).toArray();
+        selectedVariatesIdx = IntStream.range(0, nQueryChannels).toArray();
 
 //        Infer selected variates names
         selectedVariatesNames = Arrays.stream(selectedVariatesIdx).mapToObj(i -> variatePaths.get(i).getFileName().toString().split("\\.")[0]).toArray(String[]::new);
@@ -210,11 +213,11 @@ public class Parameters {
         try {
             fftConfig = mapper.readTree(new File(path));
 
-            String datasetName = datasetType.toString().toLowerCase().replace("_", "-");
+            String datasetNameStr = datasetName.toLowerCase().replace("_", "-");
 
 //            Get the covered distances for each of the selected variates
             for (int i = 0; i < selectedVariatesNames.length; i++) {
-                ArrayNode arrayNode = (ArrayNode) fftConfig.get(datasetName + "_" + selectedVariatesNames[i]);
+                ArrayNode arrayNode = (ArrayNode) fftConfig.get(datasetNameStr + "_" + selectedVariatesNames[i]);
                 if (arrayNode != null) {
                     for (int j = 0; j < arrayNode.size(); j++) {
                         coveredDistances[i][j] = arrayNode.get(j).asDouble();
@@ -227,8 +230,8 @@ public class Parameters {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
-            exit(1);
+            Logger.getGlobal().info("Could not read the FFT config file, setting default coefficients");
+            fftCoveredDistance = -1;
         }
 
 
@@ -271,19 +274,14 @@ public class Parameters {
     }
 
     public static void setLeafSize(long nSubsequences, double percentage) {
-        if (algorithmType.equals(AlgorithmType.MULTI_ST_INDEX)){
+        if (algorithmType.equals(AlgorithmType.MSINDEX)){
             indexLeafSize = percentage == 0 ? 4: (int) Math.round(nSubsequences * percentage);
         } else {
             switch (algorithmType) {
-                case DSTREE:
                 case DSTREE_ORG:
                     indexLeafSize = 2 + (int) Math.ceil(nSubsequences / 10.0);
                     break;
-                case DSTREE_DEF:
-                    indexLeafSize = (int) Math.ceil(qLen / 256.0 * 100000);
-                    break;
                 case ST_INDEX:
-                case MSEG:
                     indexLeafSize = 8;
                     break;
                 default:

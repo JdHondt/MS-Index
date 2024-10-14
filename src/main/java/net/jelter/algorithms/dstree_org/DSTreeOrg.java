@@ -40,7 +40,7 @@ public class DSTreeOrg implements Serializable {
     public File getIndexPath() {
         return Paths.get("index_caches/" + String.join("_",
                 algorithmType.toString(),
-                datasetType.toString(),
+                datasetName.toString(),
                 String.valueOf(N),
                 String.valueOf(maxM),
                 String.valueOf(seed),

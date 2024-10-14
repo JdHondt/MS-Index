@@ -1,7 +1,7 @@
 package net.jelter.utils.rtreemulti.internal;
 
 import com.github.davidmoten.guavamini.Preconditions;
-import net.jelter.algorithms.multistindex.MinimumBoundingRectangle;
+import net.jelter.algorithms.msindex.MinimumBoundingRectangle;
 import net.jelter.utils.rtreemulti.geometry.HasGeometry;
 import net.jelter.utils.rtreemulti.geometry.Rectangle;
 

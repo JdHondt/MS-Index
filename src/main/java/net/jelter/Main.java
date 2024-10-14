@@ -3,17 +3,13 @@ package net.jelter;
 import net.jelter.algorithms.Algorithm;
 import net.jelter.algorithms.AlgorithmType;
 import net.jelter.algorithms.BruteForce;
-import net.jelter.algorithms.dstree.MVDSTree;
 import net.jelter.algorithms.dstree_org.MVDSTreeOrg;
-import net.jelter.algorithms.multistindex.MultiSTIndex;
-import net.jelter.algorithms.multistindex.MissingValueStrategy;
-import net.jelter.algorithms.multistindex.segmentation.SegmentMethods;
+import net.jelter.algorithms.msindex.MSIndex;
 import net.jelter.io.DataLoader;
 import net.jelter.io.DataManager;
 import net.jelter.io.WorkloadGenerator;
 import net.jelter.algorithms.mass.MVMASS;
 import net.jelter.algorithms.stindex.MultivariateSTIndex;
-import net.jelter.algorithms.mseg.MSeg;
 import net.jelter.utils.*;
 
 import java.util.*;
@@ -51,15 +47,7 @@ public class Main {
             int i = 0;
             algorithmType = AlgorithmType.valueOf(args[i]);
             i++;
-            datasetType = DatasetType.valueOf(args[i].toUpperCase());
-            i++;
             dataPath = args[i];
-            i++;
-            outputPath = args[i];
-            i++;
-            fftConfigPath = args[i];
-            i++;
-            queryFromDataset = Boolean.parseBoolean(args[i]);
             i++;
             final int parsedMaxN = Integer.parseInt(args[i]);
             N = parsedMaxN == -1 ? Integer.MAX_VALUE : parsedMaxN;
@@ -68,6 +56,8 @@ public class Main {
             i++;
             final int parsedQD = Integer.parseInt(args[i]);
             dimensions = parsedQD == -1 ? Integer.MAX_VALUE : parsedQD;
+            i++;
+            nQueryChannels = Integer.parseInt(args[i]);
             i++;
             qLen = Integer.parseInt(args[i]);
             i++;
@@ -79,63 +69,27 @@ public class Main {
             i++;
             runtimeMode = RuntimeMode.valueOf(args[i]);
             i++;
-            fftCoveredDistance = Double.parseDouble(args[i]);
-            i++;
-            queryNoiseEps = Double.parseDouble(args[i]);
-            i++;
-            indexLeafSizePercentage = Double.parseDouble(args[i]);
-            i++;
             experimentId = Integer.parseInt(args[i]);
             i++;
             seed = Integer.parseInt(args[i]);
             i++;
             parallel = Boolean.parseBoolean(args[i]);
-            i++;
-            selectedVariates = Integer.parseInt(args[i]);
-            i++;
-            kMeansClusters = Integer.parseInt(args[i]);
-            i++;
-            computeOptimalPlan = Boolean.parseBoolean(args[i]);
-            i++;
-            percentageVariatesUsed = Double.parseDouble(args[i]);
-            i++;
-            mstSegmentMethod = SegmentMethods.valueOf(args[i]);
-            i++;
-            mstSegmentParameter = Integer.parseInt(args[i]);
-            i++;
-            missingValueStrategy = MissingValueStrategy.valueOf(args[i]);
         } else {
             Logger.getGlobal().info("Using default parameters");
-            algorithmType = AlgorithmType.ST_INDEX;
-            datasetType = DatasetType.STOCKS;
-            dataPath = "/home/jens/tue/data/MTS/subsequence_search/preprocessed";
-            outputPath = "/home/jens/ownCloud/Documents/3.Werk/0.TUe_Research/3.Other_Projects/0.MultivariateTimeSeries/subsequence_search/MTS-subsequence-search/Code/output";
-            fftConfigPath = "/home/jens/ownCloud/Documents/3.Werk/0.TUe_Research/3.Other_Projects/0.MultivariateTimeSeries/subsequence_search/MTS-subsequence-search/analysis/dfts";
-            queryFromDataset = true;
+            algorithmType = AlgorithmType.MSINDEX;
+            dataPath = "data/synthetic";
             N = 100;
             dimensions = -1;
+            nQueryChannels = -1; // ALL VARIATES
             qLen = 730;
             maxM = 32000;
             K = 1;
             normalize = true;
             nQueries = 10;
-            runtimeMode = RuntimeMode.INDEX_NO_STORE;
-            fftCoveredDistance = -1;
-            queryNoiseEps = 0.1;
-            indexLeafSizePercentage = 0.0005;
-//            indexLeafSizePercentage = 0;
+            runtimeMode = RuntimeMode.FULL_NO_STORE;
             experimentId = 0;
             seed = 0;
             parallel = false;
-            kMeansClusters = 1;
-            computeOptimalPlan = true;
-            selectedVariates = -1; // ALL VARIATES
-//            selectedVariates = 0; // SINGLE VARIATE
-            percentageVariatesUsed = 1;
-
-            mstSegmentMethod = SegmentMethods.ADHOC;
-            mstSegmentParameter = 0;
-            missingValueStrategy = MissingValueStrategy.VARIANCE;
         }
 
         //        Parameter checks
@@ -147,9 +101,6 @@ public class Main {
 
 //        Initialize random
         Parameters.newRandom();
-
-//        Build full dataPath and workloadPath
-        dataPath += "/" + datasetType.toString().toLowerCase().replace("_", "-");
     }
 
     public static void main(String[] args) {
@@ -197,14 +148,7 @@ public class Main {
 
         switch (algorithmType) {
             case DSTREE_ORG:
-            case DSTREE_DEF:
                 algorithm = new MVDSTreeOrg();
-                break;
-            case DSTREE:
-                algorithm = new MVDSTree();
-                break;
-            case MSEG:
-                algorithm = new MSeg();
                 break;
             case MASS:
                 algorithm = new MVMASS();
@@ -212,11 +156,8 @@ public class Main {
             case ST_INDEX:
                 algorithm = new MultivariateSTIndex();
                 break;
-            case MULTI_ST_INDEX:
-                algorithm = new MultiSTIndex(true);
-                break;
-            case SEGMENTS_ONLY:
-                algorithm = new MultiSTIndex(false);
+            case MSINDEX:
+                algorithm = new MSIndex(true);
                 break;
             case BRUTE_FORCE:
                 algorithm = new BruteForce();
@@ -242,7 +183,7 @@ public class Main {
         logger.info("Avg Subsequences Exhaustively Checked: " + subsequencesExhChecked.get() / (double) nQueries);
         logger.info("Avg Segments Under Threshold: " + segmentsUnderThreshold.get() / (double) nQueries);
         logger.info("Avg Bound Computations: " + nBoundComputations.get() / (double) nQueries);
-        if (Arrays.asList(AlgorithmType.DSTREE_ORG,AlgorithmType.ST_INDEX,AlgorithmType.MULTI_ST_INDEX).contains(algorithmType)) {
+        if (Arrays.asList(AlgorithmType.DSTREE_ORG,AlgorithmType.ST_INDEX,AlgorithmType.MSINDEX).contains(algorithmType)) {
             logger.info("Set-up time: " + setUpTime + "ms");
             logger.info("Index search time: " + indexSearchTime + "ms");
             logger.info("Exhaustive search time: " + exhaustiveTime + "ms");

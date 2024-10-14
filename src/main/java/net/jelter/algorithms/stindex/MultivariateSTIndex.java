@@ -17,7 +17,7 @@ public class MultivariateSTIndex extends Algorithm {
     STIndex[] faloutsos;
     private FourierTrail[] fourierTrails;
 
-    private ArrayList<Pair<Double, double[]>> exhaustiveTopK(List<TeunTuple2> candidates, double[][] query, int k) {
+    private ArrayList<Pair<Double, double[]>> exhaustiveTopK(List<MSTuple2> candidates, double[][] query, int k) {
         final Comparator<Pair<Double, double[]>> comparator = (o1, o2) -> Double.compare(o2.getKey(), o1.getKey());
         final PriorityBlockingQueue<Pair<Double, double[]>> topK = new PriorityBlockingQueue<>(k, comparator);
 
@@ -56,15 +56,15 @@ public class MultivariateSTIndex extends Algorithm {
     }
 
     //    General merging algorithm from the paper. Named BaselineQuery in the paper
-    public List<TeunTuple3> kNN(int k, double[][] query) {
+    public List<MSTuple3> kNN(int k, double[][] query) {
         long start = System.currentTimeMillis();
         //        Get approximate kNN for each index in parallel
-        List<TeunTuple2> candidates = lib.getStream(IntStream.of(selectedVariatesIdx).boxed())
+        List<MSTuple2> candidates = lib.getStream(IntStream.of(selectedVariatesIdx).boxed())
                 .map(i -> faloutsos[i].closest(Point.create(query[i]), k))
                 .flatMap(List::stream).flatMap(e -> {
-                    final ArrayList<TeunTuple2> tuples = new ArrayList<>(e._1.getEnd() - e._1.getStart() + 1);
+                    final ArrayList<MSTuple2> tuples = new ArrayList<>(e._1.getEnd() - e._1.getStart() + 1);
                     for (int i = e._1.getStart(); i <= e._1.getEnd(); i++) {
-                        tuples.add(new TeunTuple2(e._1.getTimeSeriesIndex(), i));
+                        tuples.add(new MSTuple2(e._1.getTimeSeriesIndex(), i));
                     }
                     return tuples.stream();
                 }).distinct().collect(Collectors.toList());
@@ -95,7 +95,7 @@ public class MultivariateSTIndex extends Algorithm {
         long _setUpTime = System.currentTimeMillis();
         setUpTime += _setUpTime - start;
 
-        final PriorityBlockingQueue<TeunTuple3> topKTracking = new PriorityBlockingQueue<>(k, TeunTuple3.compareByDistanceReversed());
+        final PriorityBlockingQueue<MSTuple3> topKTracking = new PriorityBlockingQueue<>(k, MSTuple3.compareByDistanceReversed());
 
 //        Get final topK candidates
 //        This list does not contain time series that do not have all of the query's dimensions
@@ -135,9 +135,9 @@ public class MultivariateSTIndex extends Algorithm {
                     }
 
                     if (topKTracking.size() < k) {
-                        topKTracking.add(new TeunTuple3(dist, timeSeries, subSequenceNr));
+                        topKTracking.add(new MSTuple3(dist, timeSeries, subSequenceNr));
                     } else if (dist < topKTracking.peek().distance()) {
-                        topKTracking.add(new TeunTuple3(dist, timeSeries, subSequenceNr));
+                        topKTracking.add(new MSTuple3(dist, timeSeries, subSequenceNr));
                         topKTracking.poll();
                     }
                 });

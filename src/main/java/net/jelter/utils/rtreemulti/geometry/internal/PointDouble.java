@@ -1,6 +1,6 @@
 package net.jelter.utils.rtreemulti.geometry.internal;
 
-import net.jelter.algorithms.multistindex.MinimumBoundingRectangle;
+import net.jelter.algorithms.msindex.MinimumBoundingRectangle;
 import net.jelter.utils.rtreemulti.geometry.Geometry;
 import net.jelter.utils.rtreemulti.geometry.Point;
 import net.jelter.utils.rtreemulti.geometry.Rectangle;
