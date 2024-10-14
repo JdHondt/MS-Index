@@ -1,0 +1,83 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: subsearch-100-1723813268549
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      name: subsearch-100-1723813268549
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: subsearch-100-1723813268549
+          image: eclipse-temurin:11-jdk-focal
+    #      command: ["/bin/sh", "-c", "while true; do echo 'Running...'; sleep 10; done"]
+    #      command: ["/bin/sh", "-c", "echo $(java -version)"]
+          command: [
+            "java",
+            "-Xmx128G",
+            "-jar",
+            "/home/mts-subsequence-search/MSeg_jar/MSeg.jar",
+            "MST_INDEX",
+            "SYNTHETIC_BIG",
+            "/home/mts-subsequence-search/data",
+            "/home/mts-subsequence-search/output",
+            "true",
+            "100",
+            "4096",
+            "2048",
+            "64",
+            "1",
+            "false",
+            "100",
+            "FULL_NO_STORE",
+            "2",
+            "-1",
+            "0.1",
+            "0",
+            "8",
+            "100",
+            "0",
+            "false",
+            "0",
+            "3",
+            "true",
+            "FALOUTSOS",
+            "1"
+          ]
+          resources:
+            limits:
+              cpu: "1"
+              memory: "128Gi"
+#              power.intel.com/performance: "1"
+            requests:
+              cpu: "1"
+              memory: "16Gi"
+#              power.intel.com/performance: "1"
+
+          # You will need this in all your pod specs, you don't need to know why
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            readOnlyRootFilesystem: true
+            runAsGroup: 70
+            runAsNonRoot: true
+            runAsUser: 70
+
+          # Shared storage
+          volumeMounts:
+            - name: nfs-01
+              mountPath: "/home"
+
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+
+      volumes:
+        - name: nfs-01
+          persistentVolumeClaim:
+            claimName: nfs-01
+  backoffLimit: 4
