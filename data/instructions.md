@@ -1,5 +1,5 @@
 # Where to find data
-The authors of the paper have provided part of the data in the following [link](https://drive.google.com/drive/folders/1Qw0x0p-vLFlmvGln30SmpAQf1CAQUado?usp=drive_link).
+The authors of the paper have provided part of the data in the following [link](https://drive.google.com/drive/folders/1Qw0x0p-vLFlmvGln30SmpAQf1CAQUado?usp=sharing).
 
 This Google Drive contains the following datasets:
 - Stocks
