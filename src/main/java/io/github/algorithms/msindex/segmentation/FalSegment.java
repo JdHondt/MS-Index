@@ -1,7 +1,6 @@
 package io.github.algorithms.msindex.segmentation;
 
 import io.github.utils.*;
-import io.github.io.DataManager;
 import io.github.utils.rtreemulti.Entry;
 import io.github.utils.rtreemulti.geometry.Geometry;
 import org.apache.commons.math3.util.FastMath;
@@ -9,8 +8,6 @@ import org.apache.commons.math3.util.FastMath;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import static io.github.utils.Parameters.*;
 
 public class FalSegment extends Segmentation {
     /**
@@ -50,18 +47,10 @@ public class FalSegment extends Segmentation {
 
             int dimensionToSegmentOn = 0;
 
-            // Multi ST-index should be forced to segment on the first available variate
-            while (!DataManager.supportsVariate(timeSeries, dimensionToSegmentOn)) {
-                dimensionToSegmentOn++;
-            }
-            if (dimensionToSegmentOn == channels) {
-                return entries;
-            }
-
 //            Get the normalized values of the current segment, ONLY FOR FIRST AVAILABLE VARIATE
             final double[] normFourier = new double[noCoeffsPerDimension];
             for (int j = 0; j < noCoeffsPerDimension; j++) {
-                normFourier[j] = lib.minMaxNormalize(trail[i][noCoeffsPerDimension * dimensionToSegmentOn + j], totalMins[j], totalMaxs[j]);
+                normFourier[j] = lib.minMaxNormalize(trail[i][j], totalMins[j], totalMaxs[j]);
             }
 
 //            Update the MBR of the current segment.

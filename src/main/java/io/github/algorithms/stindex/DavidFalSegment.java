@@ -2,7 +2,6 @@ package io.github.algorithms.stindex;
 
 import com.github.davidmoten.rtreemulti.geometry.Point;
 import com.github.davidmoten.rtreemulti.geometry.Rectangle;
-import io.github.io.DataManager;
 import com.github.davidmoten.rtreemulti.Entry;
 import com.github.davidmoten.rtreemulti.geometry.Geometry;
 import io.github.utils.CandidateSegment;
@@ -15,8 +14,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import static io.github.utils.Parameters.channels;
 
 public class DavidFalSegment  {
     /**
@@ -59,20 +56,10 @@ public class DavidFalSegment  {
         for (int i = 0; i < trail.length; i++) {
             double currentRatio = 1;
 
-            int dimensionToSegmentOn = 0;
-
-            // Multi ST-index should be forced to segment on the first available variate
-            while (!DataManager.supportsVariate(timeSeries, dimensionToSegmentOn)) {
-                dimensionToSegmentOn++;
-            }
-            if (dimensionToSegmentOn == channels) {
-                return entries;
-            }
-
 //            Get the normalized values of the current segment, ONLY FOR FIRST AVAILABLE VARIATE
             final double[] normFourier = new double[noCoeffsPerDimension];
             for (int j = 0; j < noCoeffsPerDimension; j++) {
-                normFourier[j] = lib.minMaxNormalize(trail[i][noCoeffsPerDimension * dimensionToSegmentOn + j], totalMins[j], totalMaxs[j]);
+                normFourier[j] = lib.minMaxNormalize(trail[i][j], totalMins[j], totalMaxs[j]);
             }
 
 //            Update the MBR of the current segment.

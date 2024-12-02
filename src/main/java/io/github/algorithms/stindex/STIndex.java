@@ -27,7 +27,6 @@ public class STIndex {
     public STIndex(int dimension, FourierTrail[] fourierTrails) {
         // Get all the segments from the dataset
         final List<Entry<CandidateSegment, Geometry>> items = lib.getStream(IntStream.range(0, N).boxed())
-                .filter(n -> DataManager.supportsVariate(n, dimension)) // Filter out the time series that do not support this variate
                 .flatMap(n -> DavidFalSegment.segment(n, fourierTrails[n], dimension).stream())
                 .collect(Collectors.toList());
 
@@ -41,9 +40,6 @@ public class STIndex {
         for (Entry<CandidateSegment, Geometry> entry : tree.search(transformedPoint.mbr(), Double.POSITIVE_INFINITY)) {
             final CandidateSegment falItem = entry.value();
 
-            if (!DataManager.supportsQuery(falItem.getTimeSeriesIndex())) {
-                continue;
-            }
             final double distance = entry.geometry().distance(transformedPoint);
             q.add(new Tuple2<>(falItem, distance));
         }
@@ -57,10 +53,6 @@ public class STIndex {
         final Iterable<Entry<CandidateSegment, Geometry>> result = tree.search(transformedPoint, threshold);
         for (Entry<CandidateSegment, Geometry> entry : result) {
             final CandidateSegment falItem = entry.value();
-
-            if (!DataManager.supportsQuery(falItem.getTimeSeriesIndex())) {
-                continue;
-            }
 
             for (int i = falItem.getStart(); i <= falItem.getEnd(); i++) {
                 belowThreshold.add(new SSEntry(falItem.getTimeSeriesIndex(), i, dimension));

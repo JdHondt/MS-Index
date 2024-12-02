@@ -35,7 +35,6 @@ public class Parameters {
     public static AlgorithmType algorithmType = AlgorithmType.MASS; // Index algorithmType
     public static String dataPath = "/home/data";
     public static String datasetName;
-    public static boolean queryFromDataset = true; // If false, use a random walk
     public static int N = 100; // # Time series = min(#dataset, maxN)
     public static int maxM = (int) 1e6; // # Maximum length of Time series
     public static int qLen = 100; // Length of query
@@ -53,8 +52,8 @@ public class Parameters {
     public static double datasetSize;
     public static int nQueryChannels;
     public static int[] selectedVariatesIdx;
-    public static double percentageVariatesUsed = 1;
     public static PartitionStrategy partitionStrategy = PartitionStrategy.VARIANCE;
+    public static boolean includeQueriesInIndex = true;
 
     @Hide
     public static Random random;
@@ -85,9 +84,6 @@ public class Parameters {
     public static double[][] precomputedAnglesCos;
     @Hide
     public static double[][] precomputedAnglesSin;
-
-    public static Long memoryUsageBeforeIndexing;
-    public static Long memoryUsageAfterIndexing;
 
 
     //    Run Statistics (about the run)

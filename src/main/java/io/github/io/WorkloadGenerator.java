@@ -2,9 +2,10 @@ package io.github.io;
 
 import io.github.utils.lib;
 
-import static io.github.io.DataManager.selectedQueriesSet;
-
+import java.util.Arrays;
 import java.util.Random;
+
+import static io.github.utils.lib.std;
 
 public class WorkloadGenerator {
 
@@ -19,7 +20,7 @@ public class WorkloadGenerator {
      * @param normalize:     Whether to normalize the queries
      * @return An array of queries
      */
-    public static double[][][] generateWorkload(double[][][] dataset, int nQueries, int qLen, double queryNoiseEps, boolean normalize, Random random) {
+    public static double[][][] generateWorkloadFromIndex(double[][][] dataset, int nQueries, int qLen, double queryNoiseEps, boolean normalize, Random random) {
         final int nTimeSeries = dataset.length;
         final int nDimensions = dataset[0].length;
 
@@ -28,7 +29,6 @@ public class WorkloadGenerator {
         }
 
         double[][][] queries = new double[nQueries][nDimensions][qLen];
-        selectedQueriesSet = new java.util.HashSet<>();
 
         for (int i = 0; i < nQueries; i++) {
             while (true) {
@@ -49,7 +49,6 @@ public class WorkloadGenerator {
                 if (!hasVariance) {
                     continue;
                 }
-                selectedQueriesSet.add(randomTimeSeries);
 
                 for (int j = 0; j < nDimensions; j++) {
                     double[] Q = new double[qLen];
@@ -57,6 +56,68 @@ public class WorkloadGenerator {
                     for (int k = 0; k < qLen; k++) {
                         Q[k] = base[k] + (random.nextGaussian() * queryNoiseEps);
                     }
+                    if (normalize) {
+                        Q = lib.znorm(Q);
+                    }
+                    queries[i][j] = Q;
+                }
+                break;
+            }
+        }
+
+        return queries;
+    }
+
+    /**
+     * Generates a workload of queries based on a dataset.
+     * It randomly selects a time series and subsequence from a withheld dataset.
+     *
+     * @param dataset:       The dataset to generate the workload from (shape; [nTimeSeries][nDimensions][nValues])
+     * @param nQueries:      The number of queries to generate
+     * @param qLen:          The length of the queries
+     * @param normalize:     Whether to normalize the queries
+     * @return An array of queries
+     */
+    public static double[][][] generateWorkloadFromWithheldTimeSeries(double[][][] dataset, int nQueries, int qLen, boolean normalize, Random random) {
+        final int nTimeSeries = dataset.length;
+        final int nDimensions = dataset[0].length;
+
+        if (random == null) {
+            random = new Random();
+        }
+
+        double[][][] queries = new double[nQueries][nDimensions][qLen];
+
+        for (int i = 0; i < nQueries; i++) {
+            while (true) {
+                final int randomTimeSeries = random.nextInt(nTimeSeries);
+                double[][] subseq = dataset[randomTimeSeries];
+                final int nValues = subseq[0].length;
+                final int randomStart = random.nextInt(nValues - qLen + 1);
+
+                // Check if this subsequence has variance over all dimensions
+                boolean hasVariance = true;
+                for (int d = 0; d < nDimensions; d++) {
+                    double LS = 0;
+                    double SS = 0;
+                    for (int k = 0; k < qLen; k++) {
+                        double val = subseq[d][randomStart + k];
+                        LS += val;
+                        SS += val * val;
+                    }
+
+                    final double std = std(SS, LS, qLen);
+                    if (std == 0) {
+                        hasVariance = false;
+                        break;
+                    }
+                }
+                if (!hasVariance) {
+                    continue;
+                }
+
+                for (int j = 0; j < nDimensions; j++) {
+                    double[] Q = Arrays.copyOfRange(subseq[j], randomStart, randomStart + qLen);
                     if (normalize) {
                         Q = lib.znorm(Q);
                     }

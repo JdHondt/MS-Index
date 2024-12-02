@@ -2,9 +2,6 @@ package io.github.io;
 
 import io.github.utils.Range;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
 import java.util.stream.IntStream;
 
 import static io.github.utils.Parameters.*;
@@ -19,10 +16,6 @@ public class DataManager {
     public static double[][][] squaredSums;
     public static double[][][] queries;
     public static int[] timeSeriesStarts;
-    public static int[] supportedDimensions;
-    private static int variatesUsedInQuery;
-    public static HashSet<Integer> selectedQueriesSet;
-    public static HashSet<Integer> selectedVariatesSet;
 
     public static void computeMeansStds() {
         timeSeriesStarts = new int[N];
@@ -50,24 +43,6 @@ public class DataManager {
                 }
             }
         });
-    }
-
-    public static void unsetVariates() {
-        if (percentageVariatesUsed == 1) {
-            return;
-        }
-        final Random variateRandom = new Random(seed);
-        supportedDimensions = new int[N];
-        for (int n = 0; n < N; n++) {
-            for (int d = 0; d < channels; d++) {
-                if (variateRandom.nextDouble() > percentageVariatesUsed && (!selectedQueriesSet.contains(n) || !selectedVariatesSet.contains(d))) {
-                    data[n][d] = null;
-                } else {
-                    supportedDimensions[n] |= 1 << d;
-                }
-            }
-        }
-        variatesUsedInQuery = Arrays.stream(selectedVariatesIdx).map(d -> 1 << d).reduce(0, (a, b) -> a | b);
     }
 
     public static void computeSquaredSums() {
@@ -139,15 +114,6 @@ public class DataManager {
             subSeq[i] = getSubSequence(timeSeries, i, subSequence);
         }
         return subSeq;
-    }
-
-    public static boolean supportsQuery(int n) {
-        return percentageVariatesUsed == 1 || (supportedDimensions[n] & variatesUsedInQuery) == variatesUsedInQuery;
-    }
-
-    public static boolean supportsVariate(int n, int d) {
-        // Return if bit is set
-        return percentageVariatesUsed == 1 || (supportedDimensions[n] & (1 << d)) != 0;
     }
 
     public static int getM(int timeSeries) {

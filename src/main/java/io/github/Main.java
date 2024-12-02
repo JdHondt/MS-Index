@@ -16,7 +16,6 @@ import java.util.*;
 import java.util.logging.*;
 
 import static java.lang.System.exit;
-import static io.github.io.DataManager.selectedVariatesSet;
 import static io.github.utils.Parameters.*;
 
 public class Main {
@@ -74,6 +73,8 @@ public class Main {
             seed = Integer.parseInt(args[i]);
             i++;
             parallel = Boolean.parseBoolean(args[i]);
+            i++;
+            includeQueriesInIndex = Boolean.parseBoolean(args[i]);
         } else {
             Logger.getGlobal().info("Using default parameters");
             algorithmType = AlgorithmType.MSINDEX;
@@ -90,6 +91,7 @@ public class Main {
             experimentId = 0;
             seed = 0;
             parallel = false;
+            includeQueriesInIndex = false;
         }
 
         //        Parameter checks
@@ -115,7 +117,7 @@ public class Main {
         // Generate/load dataset
         DataManager.data = DataLoader.loadData();
 
-        setDependentParametersPostLoad();
+         setDependentParametersPostLoad();
 
         // Precompute means and stds
         logger.info("Precomputing means and stds");
@@ -129,15 +131,12 @@ public class Main {
         // Get workload
         if (runtimeMode != RuntimeMode.INDEX) {
             logger.info("Generating workload");
-            DataManager.queries = WorkloadGenerator.generateWorkload(DataManager.data, nQueries, qLen, queryNoiseEps, normalize, random);
+            if (includeQueriesInIndex) {
+                DataManager.queries = WorkloadGenerator.generateWorkloadFromIndex(DataManager.data, nQueries, qLen, queryNoiseEps, normalize, random);
+            } else {
+                DataManager.queries = WorkloadGenerator.generateWorkloadFromWithheldTimeSeries(DataLoader.withheldTimeSeries, nQueries, qLen, normalize, random);
+            }
         }
-
-        selectedVariatesSet = new HashSet<>();
-        for (int i : selectedVariatesIdx) {
-            selectedVariatesSet.add(i);
-        }
-
-        DataManager.unsetVariates();
 
         // Print parameters
         logger.info("Parameters:");

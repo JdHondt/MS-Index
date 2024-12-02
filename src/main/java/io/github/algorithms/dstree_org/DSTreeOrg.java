@@ -48,8 +48,7 @@ public class DSTreeOrg implements Serializable {
                 String.valueOf(channels),
                 normalize ? "1" : "0",
                 String.valueOf(fftCoveredDistance),
-                String.valueOf(dimension),
-                String.valueOf(percentageVariatesUsed)
+                String.valueOf(dimension)
         )).toFile();
     }
 

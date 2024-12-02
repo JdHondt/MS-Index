@@ -171,8 +171,7 @@ public abstract class Algorithm {
                 normalize ? "1" : "0",
                 String.valueOf(fftCoveredDistance),
                 String.valueOf(kMeansClusters),
-                String.valueOf(seed),
-                String.valueOf(percentageVariatesUsed)
+                String.valueOf(seed)
         ) + ".ser";
     }
 

@@ -9,7 +9,6 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
-import static io.github.utils.Parameters.percentageVariatesUsed;
 import static io.github.utils.Parameters.selectedVariatesIdx;
 
 public class BruteForce extends Algorithm {
@@ -21,13 +20,6 @@ public class BruteForce extends Algorithm {
         final PriorityBlockingQueue<MSTuple3> topK = new PriorityBlockingQueue<>(k, MSTuple3.compareByDistanceReversed());
 
         lib.getStream(IntStream.range(0, dataset.length).boxed()).map(n -> Map.entry(n, -1)).flatMap(a -> {
-            if (percentageVariatesUsed != 1) {
-                // If one variate is included in the query but not in the time series, continue
-                if ((DataManager.supportedDimensions[a.getKey()] & variatesUsedInQuery) != variatesUsedInQuery) {
-                    return StreamSupport.stream(Spliterators.emptySpliterator(), false);
-                }
-            }
-
             final Map.Entry<Integer, Integer>[] entries = new Map.Entry[DataManager.noSubsequences(a.getKey())];
             for (int i = 0; i < entries.length; i++) {
                 entries[i] = Map.entry(a.getKey(), i);

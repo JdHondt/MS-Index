@@ -28,11 +28,6 @@ public class MVMASS extends Algorithm {
         final PriorityBlockingQueue<MSTuple3> topK = new PriorityBlockingQueue<>(k, MSTuple3.compareByDistanceReversed());
 
         lib.getStream(IntStream.range(0, N).boxed()).forEach(n -> {
-            if (!DataManager.supportsQuery(n)) {
-                // If one variate is included in the query but not in the time series, continue
-                return;
-            }
-
 //            Get the query FFT
             final int qNormIndex = Integer.numberOfTrailingZeros(lib.nextPowerOfTwo(DataManager.getM(n))) - qLenLog2;
 
@@ -72,9 +67,7 @@ public class MVMASS extends Algorithm {
         timeseriesFFTs = new double[data.length][channels][]; // shape (N, dimensions, coefficients)
         for (int i = 0; i < data.length; i++) {
             for (int d = 0; d < channels; d++) {
-                if (DataManager.supportsVariate(i, d)) {
-                    timeseriesFFTs[i][d] = DFTUtils.fft(data[i][d]);
-                }
+                timeseriesFFTs[i][d] = DFTUtils.fft(data[i][d]);
             }
         }
     }

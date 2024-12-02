@@ -191,10 +191,6 @@ public class MSIndex extends Algorithm {
         for (Entry<CandidateSegment, Geometry> entry : tree.search(queryMBR, runningThreshold)) {
             final CandidateSegment candidateSegment = entry.value();
 
-            if (!DataManager.supportsQuery(candidateSegment.getTimeSeriesIndex())) {
-                continue;
-            }
-
 //            Compute the distance to the query
             q.add(candidateSegment);
 

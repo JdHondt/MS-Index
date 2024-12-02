@@ -396,7 +396,6 @@ public class DFTUtils {
                 kMeans[d] = new KMeans(100);
                 final ArrayList<double[]> randomSubsample = new ArrayList<>();
                 for (int n = 0; n < N; n++) {
-                    if (!DataManager.supportsVariate(n, d)) continue;
                     for (int i = 0; i < perTS; i++) {
                         final int randomIndex = random.nextInt(DataManager.noSubsequences(n));
                         final double[] randomSubSequence = DataManager.getSubSequence(n, d, randomIndex);

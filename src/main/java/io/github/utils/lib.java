@@ -38,23 +38,10 @@ public class lib {
 
     public static double std(double SS, double LS, int n) {
         double val = SS / n - pow2(LS / n);
-        if (val < 1e-12) {
+        if (val < 1e-12) { // for floating point errors
             return 0;
         }
         return FastMath.sqrt(val);
-    }
-
-    public static double std(double[] values) {
-        double sum = 0;
-        double sumSquare = 0;
-        for (double value : values) {
-            sum += value;
-            sumSquare += value * value;
-        }
-        double avg = sum / values.length;
-        double var = sumSquare / values.length - avg * avg;
-        var = max(var + 1E-16, -var); // for floating point errors
-        return FastMath.sqrt(var);
     }
 
     public static double[] fft(double[] input, int nCoeffs){
@@ -290,19 +277,17 @@ public class lib {
 
     public static double[] znorm(double[] v) {
         double[] z = v.clone();
-        double sum = 0;
-        double sumSquare = 0;
+        double LS = 0;
+        double SS = 0;
         for (double value : z) {
-            sum += value;
-            sumSquare += value * value;
+            LS += value;
+            SS += value * value;
         }
-        double avg = sum / z.length;
-        double var = sumSquare / z.length - avg * avg;
-        var = max(var + 1E-16, -var); // for floating point errors
-        double stdev = FastMath.sqrt(var);
+        final double avg = LS / v.length;
+        final double std = std(SS, LS, v.length);
 
         for (int i = 0; i < z.length; i++) {
-            z[i] = (z[i] - avg) / stdev;
+            z[i] = (z[i] - avg) / std;
             if (Double.isNaN(z[i])) {
                 System.out.println("debug: NaN result of znorm");
             }

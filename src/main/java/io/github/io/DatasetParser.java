@@ -20,7 +20,6 @@ import static io.github.utils.Parameters.*;
 
 public class DatasetParser {
     final String directory;
-    public long subsequences = 0;
 
     public DatasetParser(String directory) {
         this.directory = directory;
@@ -71,7 +70,6 @@ public class DatasetParser {
             }
         }
 
-
         final ArrayList<double[][]> data = new ArrayList<>();
         int largestM = 0;
         for (int i = 0; i < dimensions; i++) { // For each dimension
@@ -103,7 +101,6 @@ public class DatasetParser {
                     largestM = Math.max(largestM, M);
                     if (i == 0) {
                         timeSeries = new double[dimensions][M];
-                        subsequences += M - queryLength + 1L;
                         data.add(timeSeries);
                     } else {
                         timeSeries = data.get(dataIndex);
@@ -127,53 +124,6 @@ public class DatasetParser {
         final double[][][] dataset = new double[data.size()][][];
         data.toArray(dataset);
 
-        Parameters.datasetSize = 0L;
-        for (double[][] timeSeries : dataset) {
-            for (double[] variates : timeSeries) {
-                Parameters.datasetSize += variates.length;
-            }
-        }
-
-        return dataset;
-    }
-
-    public double[][][] parseWorkload(int n, int m, int d) {
-        final double[][][] dataset = new double[n][d][m];
-        for (int i = 0; i < n; i++) { // For each time series
-//            Paths should be per time series
-            final Path path = variatePaths.get(i);
-
-//            Read the data from the file which is in column major format with a header
-            try (BufferedReader br = new BufferedReader(new FileReader(path.toFile()))) {
-                String line;
-                int j = 0;
-                while ((line = br.readLine()) != null) {
-                    if (line.isEmpty()) continue;
-//                    Skip the header
-                    if (j == 0) {
-                        j++;
-                        continue;
-                    }
-
-//                    End if we have enough data
-                    if (j >= m) break;
-
-//                    Parse the line
-                    final String[] split = line.split(",");
-
-//                    Skip if the line is too short (not enough data)
-                    if (split.length < d) continue;
-
-//                    Add to the dataset
-                    for (int k = 0; k < d; k++) {
-                        dataset[i][k][j - 1] = Double.parseDouble(split[k]);
-                    }
-                    j++;
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
         return dataset;
     }
 
