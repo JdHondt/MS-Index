@@ -18,7 +18,9 @@ public class WorkloadGenerator {
      * @param normalize:     Whether to normalize the queries
      * @return An array of queries
      */
-    public static double[][][] generateWorkload(double[][][] dataset, int nQueries, int qLen, boolean normalize, double queryNoiseEps, Random random) {
+    public static double[][][] generateWorkload(double[][][] dataset, int nQueries, int qLen,
+                                                double queryNoiseEps, boolean fromIndex,
+                                                boolean normalize, Random random) {
         final int nTimeSeries = dataset.length;
         final int nDimensions = dataset[0].length;
 
@@ -30,23 +32,28 @@ public class WorkloadGenerator {
 
         for (int i = 0; i < nQueries; i++) {
             while (true) {
-                final int randomTimeSeries = random.nextInt(nTimeSeries);
-                double[][] subseq = dataset[randomTimeSeries];
-                final int nValues = subseq[0].length;
+                final int randomTimeSeriesIdx = random.nextInt(nTimeSeries);
+                double[][] randomTimeSeries = dataset[randomTimeSeriesIdx];
+                final int nValues = randomTimeSeries[0].length;
                 final int randomStart = random.nextInt(nValues - qLen + 1);
 
                 // Check if this subsequence has variance over all dimensions
                 boolean hasVariance = true;
                 for (int d = 0; d < nDimensions; d++) {
-                    double LS = 0;
-                    double SS = 0;
-                    for (int k = 0; k < qLen; k++) {
-                        double val = subseq[d][randomStart + k];
-                        LS += val;
-                        SS += val * val;
+                    double std;
+                    if (fromIndex){
+                        std = DataManager.getStd(randomTimeSeriesIdx, d, randomStart);
+                    } else {
+                        double LS = 0;
+                        double SS = 0;
+                        for (int k = 0; k < qLen; k++) {
+                            double val = randomTimeSeries[d][randomStart + k];
+                            LS += val;
+                            SS += val * val;
+                        }
+                        std = lib.std(SS, LS, qLen);
                     }
 
-                    final double std = std(SS, LS, qLen);
                     if (std == 0) {
                         hasVariance = false;
                         break;
@@ -57,7 +64,8 @@ public class WorkloadGenerator {
                 }
 
                 for (int j = 0; j < nDimensions; j++) {
-                    double[] Q = Arrays.copyOfRange(subseq[j], randomStart, randomStart + qLen);
+                    double[] Q = fromIndex ? DataManager.getSubSequence(randomTimeSeriesIdx, j, randomStart):
+                            Arrays.copyOfRange(randomTimeSeries[j], randomStart, randomStart + qLen);
 
 //                    Add noise to query
                     if (queryNoiseEps > 0) {

@@ -135,9 +135,9 @@ public class Main {
         if (runtimeMode != RuntimeMode.INDEX) {
             logger.info("Generating workload");
             if (queryFromIndexed) {
-                DataManager.queries = WorkloadGenerator.generateWorkload(DataManager.data, nQueries, qLen, normalize, queryNoiseEps, random);
+                DataManager.queries = WorkloadGenerator.generateWorkload(DataManager.data, nQueries, qLen, queryNoiseEps, queryFromIndexed, normalize, random);
             } else {
-                DataManager.queries = WorkloadGenerator.generateWorkload(DataLoader.withheldTimeSeries, nQueries, qLen, normalize, 0, random);
+                DataManager.queries = WorkloadGenerator.generateWorkload(DataLoader.withheldTimeSeries, nQueries, qLen, 0, queryFromIndexed, normalize, random);
             }
         }
 
