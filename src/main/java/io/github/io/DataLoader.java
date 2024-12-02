@@ -25,6 +25,9 @@ public class DataLoader {
 //        final int NToQuery = N + timeseriesForQueries;
         double[][][] data = parser.parseData(N, maxM, qLen, channels);
 
+        if (qLen == -1) qLen = (int) Math.ceil(.2 * maxM);
+        qLen = Math.max(qLen, Math.min(20, maxM)); // at least 20, if not possible, maxM
+
         if (!queryFromIndexed) {
             // Generate all queries from nQueries / 10 time series
 //            if (data.length < N) {
