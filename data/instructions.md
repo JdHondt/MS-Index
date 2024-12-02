@@ -1,12 +1,12 @@
 # Where to find data
-The authors of the paper have provided part of the data in the following link: [https://drive.google.com/drive/folders/1Qw0x0p-vLFlmvGln30SmpAQf1CAQUado?usp=drive_link]().
+The authors of the paper have provided part of the data in the following [link](https://drive.google.com/drive/folders/1Qw0x0p-vLFlmvGln30SmpAQf1CAQUado?usp=sharing).
 
 This Google Drive contains the following datasets:
 - Stocks
 - Weather
 - Synthetic
 
-The datasets from the UEA archive such as DuckDuckGeese can be found on the website of the respective paper: [https://www.timeseriesclassification.com/]().
+The datasets from the UEA archive such as DuckDuckGeese can be found on the website of the respective paper: [https://www.timeseriesclassification.com/](http://www.timeseriesclassification.com/aeon-toolkit/Archives/Multivariate2018_ts.zip)
 After downloading the data from the above sources, one needs to preprocess it through the guidelines in the next section.
 
 # Running own data
