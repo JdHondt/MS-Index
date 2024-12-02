@@ -74,24 +74,27 @@ public class Main {
             i++;
             parallel = Boolean.parseBoolean(args[i]);
             i++;
-            includeQueriesInIndex = Boolean.parseBoolean(args[i]);
+            queryFromIndexed = Boolean.parseBoolean(args[i]);
+            i++;
+            queryNoiseEps = Double.parseDouble(args[i]);
         } else {
             Logger.getGlobal().info("Using default parameters");
             algorithmType = AlgorithmType.MSINDEX;
-            dataPath = "data/synthetic";
+            dataPath = "/home/jens/tue/data/MTS/subsequence_search/preprocessed/stocks";
             N = 100;
             channels = -1;
             nQueryChannels = -1; // ALL VARIATES
             qLen = 730;
             maxM = 32000;
             K = 1;
-            normalize = true;
-            nQueries = 10;
-            runtimeMode = RuntimeMode.FULL_NO_STORE;
+            normalize = false;
+            nQueries = 100;
+            runtimeMode = RuntimeMode.CORRECTNESS;
             experimentId = 0;
             seed = 0;
             parallel = false;
-            includeQueriesInIndex = false;
+            queryFromIndexed = true;
+            queryNoiseEps = 0.1;
         }
 
         //        Parameter checks
@@ -117,7 +120,7 @@ public class Main {
         // Generate/load dataset
         DataManager.data = DataLoader.loadData();
 
-         setDependentParametersPostLoad();
+        setDependentParametersPostLoad();
 
         // Precompute means and stds
         logger.info("Precomputing means and stds");
@@ -131,10 +134,10 @@ public class Main {
         // Get workload
         if (runtimeMode != RuntimeMode.INDEX) {
             logger.info("Generating workload");
-            if (includeQueriesInIndex) {
-                DataManager.queries = WorkloadGenerator.generateWorkloadFromIndex(DataManager.data, nQueries, qLen, queryNoiseEps, normalize, random);
+            if (queryFromIndexed) {
+                DataManager.queries = WorkloadGenerator.generateWorkload(DataManager.data, nQueries, qLen, normalize, queryNoiseEps, random);
             } else {
-                DataManager.queries = WorkloadGenerator.generateWorkloadFromWithheldTimeSeries(DataLoader.withheldTimeSeries, nQueries, qLen, normalize, random);
+                DataManager.queries = WorkloadGenerator.generateWorkload(DataLoader.withheldTimeSeries, nQueries, qLen, normalize, 0, random);
             }
         }
 

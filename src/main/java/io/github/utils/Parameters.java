@@ -53,7 +53,7 @@ public class Parameters {
     public static int nQueryChannels;
     public static int[] selectedVariatesIdx;
     public static PartitionStrategy partitionStrategy = PartitionStrategy.VARIANCE;
-    public static boolean includeQueriesInIndex = true;
+    public static boolean queryFromIndexed = true;
 
     @Hide
     public static Random random;

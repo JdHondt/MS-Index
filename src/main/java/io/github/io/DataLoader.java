@@ -21,29 +21,57 @@ public class DataLoader {
 //        Shuffle the paths
         if (seed != 0) Collections.shuffle(variatePaths, random);
 
-        final int timeseriesForQueries = includeQueriesInIndex ? 0 : (int) Math.ceil(nQueries / 10.);
-        final int NToQuery = N + timeseriesForQueries;
-        double[][][] data = parser.parseData(NToQuery, maxM, qLen, channels);
+        final int timeseriesForQueries = queryFromIndexed ? 0 : Math.min(N, nQueries);
+//        final int NToQuery = N + timeseriesForQueries;
+        double[][][] data = parser.parseData(N, maxM, qLen, channels);
 
-        if (!includeQueriesInIndex) {
+        if (!queryFromIndexed) {
             // Generate all queries from nQueries / 10 time series
-            if (data.length < NToQuery) {
-                Logger.getGlobal().warning("Not enough time series to generate queries, so reducing the number of time series in the dataset used for indexing");
-                N = data.length - timeseriesForQueries;
-                if (N < 1) throw new IllegalArgumentException("Not enough time series");
-            }
+//            if (data.length < N) {
+//                Logger.getGlobal().warning("Not enough time series to generate queries, so reducing the number of time series in the dataset used for indexing");
+//                N = data.length - timeseriesForQueries;
+//                if (N < 1) throw new IllegalArgumentException("Not enough time series");
+//            }
 
             withheldTimeSeries = new double[timeseriesForQueries][][];
-            System.arraycopy(data, N, withheldTimeSeries, 0, timeseriesForQueries);
-            final double[][][] newDataset = new double[N][][];
-            System.arraycopy(data, 0, newDataset, 0, N);
-            data = newDataset;
+
+//            Take the 2Q tails of the time series to be used for queries
+            for (int i = 0; i < timeseriesForQueries; i++) {
+//                Get a random time series
+                final int idx = random.nextInt(data.length);
+                final double[][] timeSeries = data[idx];
+                final int nVariates = timeSeries.length;
+                final int m = timeSeries[0].length;
+                final int tailLength = Math.min(m, qLen * 2);
+
+//                Create the tail
+                final double[][] withheldTs = new double[nVariates][tailLength];
+                for (int j = 0; j < nVariates; j++) {
+                    System.arraycopy(timeSeries[j], m - tailLength, withheldTs[j], 0, tailLength);
+                }
+
+                withheldTimeSeries[i] = withheldTs;
+
+//                Remove the tail from the time series
+                if (m - tailLength > qLen) {
+                    final double[][] newTimeSeries = new double[nVariates][m - tailLength];
+                    for (int j = 0; j < nVariates; j++) {
+                        System.arraycopy(timeSeries[j], 0, newTimeSeries[j], 0, m - tailLength);
+                    }
+                    data[idx] = newTimeSeries;
+                }
+            }
         }
 
         Parameters.datasetSize = 0L;
         nSubsequences = 0L;
         for (double[][] timeSeries : data) {
-            nSubsequences += timeSeries[0].length - qLen + 1L;
+            final long add = timeSeries[0].length - qLen + 1L;
+            if (add < 1) {
+                throw new IllegalArgumentException("qLen > time series length");
+            }
+
+            nSubsequences += add;
             for (double[] variates : timeSeries) {
                 Parameters.datasetSize += variates.length;
             }

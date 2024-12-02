@@ -44,6 +44,12 @@ public class lib {
         return FastMath.sqrt(val);
     }
 
+    public static double std(double[] values) {
+        double var = variance(values);
+        var = max(var + 1E-16, -var); // for floating point errors
+        return FastMath.sqrt(var);
+    }
+
     public static double[] fft(double[] input, int nCoeffs){
         double[] out = new double[nCoeffs * 2];
         int n = input.length;
@@ -284,7 +290,11 @@ public class lib {
             SS += value * value;
         }
         final double avg = LS / v.length;
-        final double std = std(SS, LS, v.length);
+        double std = std(SS, LS, v.length);
+
+        if (std == 0) {
+            std = 1;
+        }
 
         for (int i = 0; i < z.length; i++) {
             z[i] = (z[i] - avg) / std;
