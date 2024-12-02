@@ -168,13 +168,14 @@ public class MVDSTreeOrg extends Algorithm implements Serializable {
                     if (computed[timeSeries][subSequenceNr]) {
                         return;
                     }
-                    computed[timeSeries][subSequenceNr] = true;
                     subsequencesExhChecked.getAndIncrement();
 
                     //                    Check for FP here
                     if (getDist(distanceCache, query[dimension], timeSeries, subSequenceNr, dimension) > thresholds[dimension]) {
                         return;
                     }
+
+                    computed[timeSeries][subSequenceNr] = true;
 
 //                    Compute distance
                     double dist = 0;

@@ -79,7 +79,7 @@ public class Main {
             queryNoiseEps = Double.parseDouble(args[i]);
         } else {
             Logger.getGlobal().info("Using default parameters");
-            algorithmType = AlgorithmType.MSINDEX;
+            algorithmType = AlgorithmType.ST_INDEX;
             dataPath = "/home/jens/tue/data/MTS/subsequence_search/preprocessed/stocks";
             N = 100;
             channels = -1;
@@ -87,8 +87,8 @@ public class Main {
             qLen = 730;
             maxM = 32000;
             K = 1;
-            normalize = false;
-            nQueries = 100;
+            normalize = true;
+            nQueries = 10;
             runtimeMode = RuntimeMode.CORRECTNESS;
             experimentId = 0;
             seed = 0;

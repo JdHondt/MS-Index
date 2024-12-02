@@ -120,13 +120,14 @@ public class MultivariateSTIndex extends Algorithm {
                         // For performance reasons, we do not use a distinct call in the stream above, so we might get duplicates
                         return;
                     }
-                    computed[timeSeries][subSequenceNr] = true;
                     subsequencesExhChecked.getAndIncrement();
 
 //                    Check for FP here
                     if (getDist(distanceCache, query[dimension], timeSeries, subSequenceNr, dimension) > thresholds[dimension]) {
                         return;
                     }
+
+                    computed[timeSeries][subSequenceNr] = true;
 
 //                    Compute the distance
                     double dist = 0;
