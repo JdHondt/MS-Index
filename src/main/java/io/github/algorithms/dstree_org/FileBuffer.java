@@ -1,6 +1,6 @@
 package io.github.algorithms.dstree_org;
 
-import io.github.algorithms.dstree_org.util.TimeSeries;
+import io.github.utils.CandidateSubsequence;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import static io.github.utils.Parameters.qLen;
  */
 public class FileBuffer implements Comparable {
     public String fileName;
-    private final List<TimeSeries> bufferedList = new ArrayList<>();
+    private final List<CandidateSubsequence> bufferedList = new ArrayList<>();
     private boolean inDisk = false;
 
     private int diskCount = 0;
@@ -26,10 +26,10 @@ public class FileBuffer implements Comparable {
         return bufferedList.size();
     }
 
-    public List<TimeSeries> getAllTimeSeries(int dimension) throws IOException {
+    public List<CandidateSubsequence> getAllTimeSeries(int dimension) throws IOException {
 
         if (diskCount > 0) {
-            List<TimeSeries> ret = new ArrayList<>(diskCount / 2);
+            List<CandidateSubsequence> ret = new ArrayList<>(diskCount / 2);
             //load ts from disk;
             fileBufferManager.ioRead++;
             FileInputStream fis = new FileInputStream(fileName);
@@ -39,7 +39,7 @@ public class FileBuffer implements Comparable {
             for (int i = 0; i < diskCount; i+=2) {
                 int tsId = dis.readInt();
                 int ssId = dis.readInt();
-                ret.add(new TimeSeries(tsId, dimension, ssId));
+                ret.add(new CandidateSubsequence(tsId, dimension, ssId));
             }
             dis.close();
             bis.close();
@@ -57,9 +57,9 @@ public class FileBuffer implements Comparable {
 
     private final FileBufferManager fileBufferManager;
 
-    public void append(TimeSeries timeSeries) {
-        bufferedList.add(timeSeries);
-        fileBufferManager.addCount(timeSeries.length());
+    public void append(CandidateSubsequence candidateSubsequence) {
+        bufferedList.add(candidateSubsequence);
+        fileBufferManager.addCount(candidateSubsequence.length());
     }
 
     public void flushBufferToDisk() throws IOException {
@@ -75,9 +75,9 @@ public class FileBuffer implements Comparable {
         BufferedOutputStream bos = new BufferedOutputStream(fos);
         DataOutputStream dos = new DataOutputStream(bos);
 
-        for (TimeSeries ss: bufferedList) {
-            dos.writeInt(ss.tsId);
-            dos.writeInt(ss.ssId);
+        for (CandidateSubsequence ss: bufferedList) {
+            dos.writeInt(ss.timeSeriesIndex);
+            dos.writeInt(ss.subsequenceIndex);
         }
         dos.close();
         bos.flush();

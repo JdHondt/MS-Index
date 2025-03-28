@@ -4,7 +4,6 @@ import io.github.utils.*;
 import lombok.Builder;
 import lombok.NonNull;
 import io.github.algorithms.msindex.MinimumBoundingRectangle;
-import io.github.utils.*;
 import io.github.utils.rtreemulti.Entry;
 import io.github.utils.rtreemulti.geometry.Geometry;
 
@@ -26,7 +25,7 @@ public class NoSegment extends Segmentation {
             return Collections.emptyList();
         }
 
-        final LandmarkMBR landmarkMBR = new LandmarkMBR(portfolios);
+        final LandmarkMBR landmarkMBR = new LandmarkMBR(portfolios, 0, portfolios.length);
 
         final double[] mins = lib.minimum(trail);
         final double[] maxs = lib.maximum(trail);

@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static io.github.utils.Parameters.*;
+
 public class FalSegment extends Segmentation {
     /**
      * Segment the MTS using the segmentation algorithm from the faloutsos94 paper.
@@ -45,12 +47,17 @@ public class FalSegment extends Segmentation {
         for (int i = 0; i < trail.length; i++) {
             double currentRatio = 1;
 
+            // MS-Index should be forced to segment on the first available variate
             int dimensionToSegmentOn = 0;
+
+            if (dimensionToSegmentOn == channels) {
+                return entries;
+            }
 
 //            Get the normalized values of the current segment, ONLY FOR FIRST AVAILABLE VARIATE
             final double[] normFourier = new double[noCoeffsPerDimension];
             for (int j = 0; j < noCoeffsPerDimension; j++) {
-                normFourier[j] = lib.minMaxNormalize(trail[i][j], totalMins[j], totalMaxs[j]);
+                normFourier[j] = lib.minMaxNormalize(trail[i][noCoeffsPerDimension * dimensionToSegmentOn + j], totalMins[j], totalMaxs[j]);
             }
 
 //            Update the MBR of the current segment.

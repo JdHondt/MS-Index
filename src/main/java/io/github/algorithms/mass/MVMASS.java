@@ -4,7 +4,7 @@ import io.github.io.DataManager;
 import io.github.algorithms.Algorithm;
 import io.github.utils.CandidateSegment;
 import io.github.utils.DFTUtils;
-import io.github.utils.MSTuple3;
+import io.github.utils.CandidateMVSubsequence;
 import io.github.utils.lib;
 
 import java.io.*;
@@ -19,13 +19,13 @@ import static io.github.utils.Parameters.nSubsequences;
 public class MVMASS extends Algorithm {
     double[][][] timeseriesFFTs; // shape (N, dimensions, coefficients)
 
-    public List<MSTuple3> kNN(int k, double[][] query) {
+    public List<CandidateMVSubsequence> kNN(int k, double[][] query) {
         subsequencesExhChecked.getAndAdd(nSubsequences);
         segmentsUnderThreshold.getAndAdd(N);
 
         final double[] querySumOfSquares = DFTUtils.getSumsOfSquares(query);
         final double[][][] qNorms = DFTUtils.getQNorms(query);
-        final PriorityBlockingQueue<MSTuple3> topK = new PriorityBlockingQueue<>(k, MSTuple3.compareByDistanceReversed());
+        final PriorityBlockingQueue<CandidateMVSubsequence> topK = new PriorityBlockingQueue<>(k, CandidateMVSubsequence.compareByTotalDistanceReversed());
 
         lib.getStream(IntStream.range(0, N).boxed()).forEach(n -> {
 //            Get the query FFT
@@ -49,15 +49,15 @@ public class MVMASS extends Algorithm {
 //                Iteratively add to topk
             for (int j = 0; j < distances.length; j++) {
                 if (topK.size() < k) {
-                    topK.add(new MSTuple3(distances[j], n, j));
-                } else if (distances[j] < topK.peek().distance()) {
-                    topK.add(new MSTuple3(distances[j], n, j));
+                    topK.add(new CandidateMVSubsequence(n, j, distances[j]));
+                } else if (distances[j] < topK.peek().totalDistance()) {
+                    topK.add(new CandidateMVSubsequence(n, j, distances[j]));
                     topK.poll();
                 }
             }
         });
 
-        return topK.stream().sorted(MSTuple3.compareByDistance()).collect(Collectors.toList());
+        return topK.stream().sorted(CandidateMVSubsequence.compareByTotalDistance()).collect(Collectors.toList());
     }
 
 

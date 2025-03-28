@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import io.github.algorithms.dstree_org.util.DistUtil;
 import io.github.utils.Parameters;
-import io.github.algorithms.dstree_org.util.TimeSeries;
+import io.github.utils.CandidateSubsequence;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -23,7 +23,7 @@ public class DSTreeOrg implements Serializable {
     @Getter
     private int dimension;
 
-    public void buildIndex(TimeSeries[][][] subsequences, int dimension) {
+    public void buildIndex(CandidateSubsequence[][][] subsequences, int dimension) {
         this.dimension = dimension;
         int threshold = Parameters.indexLeafSize;
 
@@ -52,7 +52,7 @@ public class DSTreeOrg implements Serializable {
         )).toFile();
     }
 
-    public void buildIndex(TimeSeries[][][] timeSeries, int threshold, int tsLength, int segmentSize) throws IOException, ClassNotFoundException {
+    public void buildIndex(CandidateSubsequence[][][] subsequences, int threshold, int tsLength, int segmentSize) throws IOException, ClassNotFoundException {
         root = new Node(threshold, this.dimension);
 
         // Init helper class instances
@@ -72,8 +72,8 @@ public class DSTreeOrg implements Serializable {
         root.initSegments(points);
 
 //        Insert the time series
-        for (TimeSeries[][] tss : timeSeries) {
-            for (TimeSeries ts : tss[this.dimension]) {
+        for (CandidateSubsequence[][] tss : subsequences) {
+            for (CandidateSubsequence ts : tss[this.dimension]) {
                 root.insert(ts);
             }
         }
@@ -99,12 +99,12 @@ public class DSTreeOrg implements Serializable {
         return points;
     }
 
-    public List<TimeSeries> approxKNN(double[] query, int k) {
+    public List<CandidateSubsequence> approxKNN(double[] query, int k) {
 //        Get node where the query would be located
         Node bsfNode = approximateSearch(query, root);
 
         try {
-            TimeSeries[] approxKNN = DistUtil.minDistBinaryKnn(bsfNode, query, k, this.dimension);
+            CandidateSubsequence[] approxKNN = DistUtil.minDistBinaryKnn(bsfNode, query, k, this.dimension);
             return Arrays.asList(approxKNN);
         } catch (IOException e) {
             e.printStackTrace();
@@ -125,9 +125,9 @@ public class DSTreeOrg implements Serializable {
         }
     }
 
-    public List<TimeSeries> thresholdQuery(double[] query, double threshold) {
+    public List<CandidateSubsequence> thresholdQuery(double[] query, double threshold) {
 //        Initialize the output
-        ArrayList<TimeSeries> out = new ArrayList<>();
+        ArrayList<CandidateSubsequence> out = new ArrayList<>();
 
 //        Initialize the queue
         LinkedList<Node> queue = new LinkedList<>();
@@ -139,7 +139,7 @@ public class DSTreeOrg implements Serializable {
 
 //            If leaf, calculate the distances
             if (currentNode.isTerminal()) {
-                ArrayList<TimeSeries> tss = currentNode.getTimeSeriesList();
+                ArrayList<CandidateSubsequence> tss = currentNode.getCandidateSubsequenceList();
                 out.addAll(tss);
             } else { // internal node, add children that are within the threshold
 //              Left

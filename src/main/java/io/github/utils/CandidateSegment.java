@@ -20,6 +20,8 @@ public class CandidateSegment implements Serializable {
     private final Range segmentRange;
     private final MinimumBoundingRectangle mbr;
 
+//    START: start of segment
+//    END: starting point of the last qlen subsequence of the segment!!
     public CandidateSegment(int timeSeriesIndex, int start, int end, MinimumBoundingRectangle mbr) {
         this.timeSeriesIndex = timeSeriesIndex;
         this.segmentRange = new Range(start, end);
@@ -71,22 +73,6 @@ public class CandidateSegment implements Serializable {
 
     public double getCurrLB() {
         return mbr.distanceCache[currQueryId];
-    }
-
-    public CandidateSegment union(CandidateSegment other, boolean newLandmarkMBR) {
-        final int newStart = FastMath.min(this.segmentRange.getStart(), other.segmentRange.getStart());
-        final int newEnd = FastMath.max(this.segmentRange.getEnd(), other.segmentRange.getEnd());
-        final MinimumBoundingRectangle newMBR = this.mbr.add(other.mbr);
-
-//        Merge the two landmarkMBRs
-        if (newLandmarkMBR) {
-            LandmarkMBR thisLMBR = this.mbr.getLandmarkMBR();
-            LandmarkMBR otherLMBR = other.mbr.getLandmarkMBR();
-            LandmarkMBR newLMBR = thisLMBR.add(otherLMBR);
-            newMBR.setLandmarkMBR(newLMBR);
-        }
-
-        return new CandidateSegment(this.timeSeriesIndex, newStart, newEnd, newMBR);
     }
 
     public static CandidateSegment merge(List<CandidateSegment> segments, boolean newMBRs) {

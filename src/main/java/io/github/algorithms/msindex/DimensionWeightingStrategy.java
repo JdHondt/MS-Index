@@ -1,5 +1,5 @@
 package io.github.algorithms.msindex;
 
-public enum PartitionStrategy {
+public enum DimensionWeightingStrategy {
     EQUAL, VARIANCE, RANGE
 }

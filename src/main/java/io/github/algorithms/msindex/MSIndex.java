@@ -1,9 +1,9 @@
 package io.github.algorithms.msindex;
 
 import io.github.algorithms.Algorithm;
+import io.github.utils.KMeans;
 import io.github.algorithms.msindex.segmentation.AdhocSegment;
 import io.github.algorithms.msindex.segmentation.SegmentMethods;
-import io.github.io.DataManager;
 import io.github.utils.*;
 import io.github.utils.rtreemulti.Entry;
 import io.github.utils.rtreemulti.Node;
@@ -14,7 +14,6 @@ import io.github.utils.rtreemulti.internal.NonLeafDefault;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.Logger;
 
 import static java.util.stream.Collectors.toList;
@@ -33,19 +32,6 @@ public class MSIndex extends Algorithm {
 
         DFTUtils.computeKMeansClusters(kMeans);
     }
-
-//    private List<Leaf> getLeafs(Node node) {
-//        if (node instanceof Leaf) {
-//            return Collections.singletonList((Leaf) node);
-//        } else {
-//            ArrayList<Leaf> leafs = new ArrayList<>();
-//            NonLeaf nonLeaf = (NonLeaf) node;
-//            for (Object child : nonLeaf.children()) {
-//                leafs.addAll(getLeafs((Node) child));
-//            }
-//            return leafs;
-//        }
-//    }
 
     @Override
     public String getIndexPath() {
@@ -73,19 +59,19 @@ public class MSIndex extends Algorithm {
 
     private void createTree(List<Entry<CandidateSegment, Geometry>> items){
 //        Insert all the segments into the R-tree
-        Logger.getGlobal().info("[Multi ST-index] Building the R-tree");
+        Logger.getGlobal().info("[MS-Index] Building the R-tree");
         tree = RTree.star().dimensions(treeDimensions).leafSize(buildTree ? indexLeafSize: Integer.MAX_VALUE).create(items);
 
         //            Do ad-hoc segmentation if necessary
         if (segmentMethod.equals(SegmentMethods.ADHOC)) {
-            Logger.getGlobal().info("[Multi ST-index] Post-index segmentation");
+            Logger.getGlobal().info("[MS-Index] Post-index segmentation");
             AdhocSegment.postIndexSegment(tree);
         }
     }
 
     public void buildIndex() {
 //        Get all the segments from the dataset
-        Logger.getGlobal().info("[Multi ST-index] Segmenting the fourier trails");
+        Logger.getGlobal().info("[MS-Index] Segmenting the fourier trails");
         final List<Entry<CandidateSegment, Geometry>> items = DFTUtils.getSegmentedFourierTrail(kMeans);
 
 //        Create the R-tree
@@ -98,7 +84,7 @@ public class MSIndex extends Algorithm {
 
 //        Serialize the tree
         try{
-            Logger.getGlobal().info("[Multi ST-index] Saving the index to file");
+            Logger.getGlobal().info("[MS-Index] Saving the index to file");
             FileOutputStream fileOut = new FileOutputStream(filename);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             out.writeObject(tree);
@@ -112,11 +98,11 @@ public class MSIndex extends Algorithm {
         String filename = getIndexPath();
 
         try {
-            Logger.getGlobal().info("[Multi ST-index] Loading the index from file");
+            Logger.getGlobal().info("[MS-Index] Loading the index from file");
             FileInputStream fileIn = new FileInputStream(filename);
             ObjectInputStream in = new ObjectInputStream(fileIn);
             tree = (RTree<CandidateSegment, Geometry>) in.readObject();
-            Logger.getGlobal().info("[Multi ST-index] Index loaded");
+            Logger.getGlobal().info("[MS-Index] Index loaded");
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -125,21 +111,20 @@ public class MSIndex extends Algorithm {
 
 
 
-    public ArrayList<MSTuple3> kNN(int k, double[][] query) {
+    public ArrayList<CandidateMVSubsequence> kNN(int k, double[][] query) {
 //        Compute the first f DFT-coefficients of the query, and prepare it for the R-tree search.
         final Tuple2<double[], LandmarkPortfolio> queryDFTs = DFTUtils.getQueryDFTs(query, kMeans);
         final double[] fftQFlat = queryDFTs._1();
         final LandmarkPortfolio queryPortfolio = queryDFTs._2();
         final MinimumBoundingRectangle queryMBR = new MinimumBoundingRectangle(fftQFlat, fftQFlat, kMeansClusters == 0 ? null: new LandmarkMBR(queryPortfolio));
 
-
 //        Derive an initial top k.
-        final ArrayList<MSTuple3> initialTopK = firstPass(k, query, queryMBR);
-        final double kThDistance = initialTopK.get(k - 1).distance;
-        Logger.getGlobal().info("[Multi ST-index] k-th distance after initial topK: " + kThDistance);
+        final ArrayList<CandidateMVSubsequence> initialTopK = firstPass(k, query, queryMBR);
+        final double kThDistance = initialTopK.get(k - 1).totalDistance;
+        Logger.getGlobal().info("[MS-Index] k-th distance after initial topK: " + kThDistance);
 
 //        Derive the exact topK
-        final ArrayList<MSTuple3> finalTopK = secondPass(k, query, queryMBR, kThDistance);
+        final ArrayList<CandidateMVSubsequence> finalTopK = secondPass(k, query, queryMBR, kThDistance);
 
         if (finalTopK.isEmpty()) {
             Logger.getGlobal().warning("No results found for query");
@@ -147,38 +132,34 @@ public class MSIndex extends Algorithm {
         return finalTopK;
     }
 
-    private ArrayList<MSTuple3> firstPass(int k, double[][] query, MinimumBoundingRectangle queryMBR) {
+    private ArrayList<CandidateMVSubsequence> firstPass(int k, double[][] query, MinimumBoundingRectangle queryMBR) {
         //        Get the closest r-tree entries (i.e., segments in the time series) to the query.
         long start = System.currentTimeMillis();
         final List<CandidateSegment> candidateSegments = closest(queryMBR, k);
         indexSearchTime += System.currentTimeMillis() - start;
 
-        // Collect as map from timeseries to list of segments
-        final Map<Integer, List<CandidateSegment>> groupedCandidateSegments = CandidateSegment.groupByTimeSeriesIndex(candidateSegments);
-
         //       Derive a current top k.
         start = System.currentTimeMillis();
-        ArrayList<MSTuple3> initialTopK = postFilter(query, groupedCandidateSegments, k, Double.POSITIVE_INFINITY);
+        ArrayList<CandidateMVSubsequence> initialTopK = postFilter(query, candidateSegments, k, Double.POSITIVE_INFINITY);
         exhaustiveTime += System.currentTimeMillis() - start;
 
         return initialTopK;
     }
 
-    private ArrayList<MSTuple3> secondPass(int k, double[][] query, MinimumBoundingRectangle queryMBR, double threshold) {
+    private ArrayList<CandidateMVSubsequence> secondPass(int k, double[][] query, MinimumBoundingRectangle queryMBR, double threshold) {
         //        Get the final candidates from the R-tree.
         long start = System.currentTimeMillis();
         final Iterable<Entry<CandidateSegment, Geometry>> finalCandidates = tree.search(queryMBR, new RunningThreshold(threshold));
 
         final List<CandidateSegment> finalCandidatesList = lib.getStream(finalCandidates).map(Entry::value).collect(toList());
 
-//        Group the final candidates by time series
-        final Map<Integer, List<CandidateSegment>> groupedFinalCandidates = CandidateSegment.groupByTimeSeriesIndex(finalCandidatesList);
+        segmentsUnderThreshold.getAndAdd(finalCandidatesList.size());
 
-        Logger.getGlobal().info("[Multi ST-index] Under threshold candidates: " + finalCandidatesList.size() + " coming from " + groupedFinalCandidates.size() + " time series");
+        Logger.getGlobal().info("[MS-Index] Under threshold candidates: " + finalCandidatesList.size());
         indexSearchTime += System.currentTimeMillis() - start;
 
         start = System.currentTimeMillis();
-        final ArrayList<MSTuple3> finalTopK = postFilter(query, groupedFinalCandidates, k, threshold);
+        final ArrayList<CandidateMVSubsequence> finalTopK = postFilter(query, finalCandidatesList, k, threshold);
         exhaustiveTime += System.currentTimeMillis() - start;
 
         return finalTopK;
@@ -200,33 +181,6 @@ public class MSIndex extends Algorithm {
             }
         }
         return q.asOrderedList();
-    }
-
-
-
-    /**
-     * Filter our false positives by computing the actual distances with the MASS algorithm.
-     */
-    public ArrayList<MSTuple3> postFilter(double[][] query, Map<Integer, List<CandidateSegment>> groupedCandidateSegments,
-                                          int k, double initialKthDistance) {
-        final double[] querySumOfSquares = DFTUtils.getSumsOfSquares(query);
-        final double[][][] qNorms = DFTUtils.getQNorms(query);
-
-        final PriorityBlockingQueue<MSTuple3> topK = new PriorityBlockingQueue<>(k, MSTuple3.compareByDistanceReversed());
-
-        lib.getStream(groupedCandidateSegments.entrySet()).forEach(entry -> {
-            final List<CandidateSegment> segments = entry.getValue();
-
-            final double threshold = topK.size() == k ? topK.peek().distance() : initialKthDistance;
-            final List<CandidateSegment> newSegments = DFTUtils.optimizeCandidates(segments, threshold);
-
-//            Compute the actual distances with MASS
-            DFTUtils.updateTopKWithMASS(newSegments, qNorms, querySumOfSquares, topK, k);
-        });
-
-        final ArrayList<MSTuple3> result = new ArrayList<>(topK);
-        result.sort(MSTuple3.compareByDistance());
-        return result;
     }
 
     private long recursiveTreeMemoryUsage(Node<CandidateSegment, Geometry> node) {

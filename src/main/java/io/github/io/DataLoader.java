@@ -22,29 +22,33 @@ public class DataLoader {
         if (seed != 0) Collections.shuffle(variatePaths, random);
 
         final int timeseriesForQueries = queryFromIndexed ? 0 : Math.min(N, nQueries);
-//        final int NToQuery = N + timeseriesForQueries;
+
         double[][][] data = parser.parseData(N, maxM, qLen, channels);
 
         if (qLen == -1) qLen = (int) Math.ceil(.2 * maxM);
         qLen = Math.max(qLen, Math.min(20, maxM)); // at least 20, if not possible, maxM
 
         if (!queryFromIndexed) {
-            // Generate all queries from nQueries / 10 time series
-//            if (data.length < N) {
-//                Logger.getGlobal().warning("Not enough time series to generate queries, so reducing the number of time series in the dataset used for indexing");
-//                N = data.length - timeseriesForQueries;
-//                if (N < 1) throw new IllegalArgumentException("Not enough time series");
-//            }
-
             withheldTimeSeries = new double[timeseriesForQueries][][];
 
 //            Take the 2Q tails of the time series to be used for queries
             for (int i = 0; i < timeseriesForQueries; i++) {
-//                Get a random time series
-                final int idx = random.nextInt(data.length);
-                final double[][] timeSeries = data[idx];
+                int idx;
+                double[][] timeSeries;
+                int m;
+
+//                Get a random time series that is at least 4Q long
+                if (maxM < qLen * 4) {
+                    throw new IllegalArgumentException("Time series are too short for hold-out queries");
+                }
+                while (true){
+                    idx = random.nextInt(data.length);
+                    timeSeries = data[idx];
+                    m = timeSeries[0].length;
+                    if (m >= qLen * 4) break;
+                }
+
                 final int nVariates = timeSeries.length;
-                final int m = timeSeries[0].length;
                 final int tailLength = Math.min(m, qLen * 2);
 
 //                Create the tail
@@ -56,13 +60,11 @@ public class DataLoader {
                 withheldTimeSeries[i] = withheldTs;
 
 //                Remove the tail from the time series
-                if (m - tailLength > qLen) {
-                    final double[][] newTimeSeries = new double[nVariates][m - tailLength];
-                    for (int j = 0; j < nVariates; j++) {
-                        System.arraycopy(timeSeries[j], 0, newTimeSeries[j], 0, m - tailLength);
-                    }
-                    data[idx] = newTimeSeries;
+                final double[][] newTimeSeries = new double[nVariates][m - tailLength];
+                for (int j = 0; j < nVariates; j++) {
+                    System.arraycopy(timeSeries[j], 0, newTimeSeries[j], 0, m - tailLength);
                 }
+                data[idx] = newTimeSeries;
             }
         }
 

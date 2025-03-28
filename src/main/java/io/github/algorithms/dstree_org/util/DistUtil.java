@@ -2,6 +2,7 @@ package io.github.algorithms.dstree_org.util;
 
 
 import io.github.algorithms.dstree_org.Node;
+import io.github.utils.CandidateSubsequence;
 import io.github.utils.lib;
 
 import java.io.IOException;
@@ -35,9 +36,9 @@ public class DistUtil {
     }
 
 
-    public static TimeSeries[] minDistBinaryKnn(Node bsfNode, double[] queryTs, int k, int dimension) throws IOException {
+    public static CandidateSubsequence[] minDistBinaryKnn(Node bsfNode, double[] queryTs, int k, int dimension) throws IOException {
         //open index file;
-        List<TimeSeries> tss = bsfNode.getTimeSeriesList();
+        List<CandidateSubsequence> tss = bsfNode.getCandidateSubsequenceList();
         return knn(tss, queryTs, k);
     }
 
@@ -63,16 +64,16 @@ public class DistUtil {
     public static double[] currentQueryTs;
 
 
-    public static TimeSeries[] knn(List<TimeSeries> tss, double[] queryTs, int k) throws IOException{
+    public static CandidateSubsequence[] knn(List<CandidateSubsequence> tss, double[] queryTs, int k) throws IOException{
         assert k>0;
         currentQueryTs = queryTs;
-        PriorityQueue<TimeSeries> heap = new PriorityQueue<>(k, TimeSeries.compareByDistanceReversed());
-        for(TimeSeries ts:tss){
+        PriorityQueue<CandidateSubsequence> heap = new PriorityQueue<>(k, CandidateSubsequence.compareByDistanceReversed());
+        for(CandidateSubsequence ts:tss){
             if(heap.size()<k) {
                 ts.computeDistance(queryTs);
                 heap.add(ts);
             } else {
-                TimeSeries maxDistTs = heap.poll();
+                CandidateSubsequence maxDistTs = heap.poll();
                 // maxDistTs's distance<ts
                 double newDist = ts.computeDistance(queryTs);
                 if(Double.compare(maxDistTs.distance, newDist) < 0) {
@@ -83,7 +84,7 @@ public class DistUtil {
             }
         }
         int hs = heap.size();
-        TimeSeries[] results = new TimeSeries[hs];
+        CandidateSubsequence[] results = new CandidateSubsequence[hs];
         int i=0;
         while (!heap.isEmpty()){
             results[hs - i - 1] = heap.remove();

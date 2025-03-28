@@ -5,5 +5,6 @@ public enum AlgorithmType {
     DSTREE,
     BRUTE_FORCE,
     ST_INDEX,
-    MSINDEX
+    MSINDEX,
+    KV_MATCH
 }

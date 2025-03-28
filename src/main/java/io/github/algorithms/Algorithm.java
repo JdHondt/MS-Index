@@ -2,12 +2,18 @@ package io.github.algorithms;
 
 import lombok.RequiredArgsConstructor;
 import io.github.io.DataManager;
-import io.github.utils.MSTuple3;
+import io.github.utils.CandidateMVSubsequence;
+import io.github.utils.CandidateSegment;
+import io.github.utils.DFTUtils;
+import io.github.utils.lib;
 import pl.edu.icm.jlargearrays.ConcurrencyUtils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.logging.Logger;
 
 import static io.github.utils.Parameters.*;
@@ -128,15 +134,15 @@ public abstract class Algorithm {
         for (int i = 0; i < queries.length; i++) {
             long lstart = System.currentTimeMillis();
             logger.info(String.format("Querying %d/%d", i, queries.length));
-            final List<MSTuple3> results = kNN(K, queries[i]);
+            final List<CandidateMVSubsequence> results = kNN(K, queries[i]);
             if (printResults) {
 //                Sort results by distance
-                results.sort(Comparator.comparingDouble(MSTuple3::distance));
+                results.sort(Comparator.comparingDouble(CandidateMVSubsequence::totalDistance));
                 logger.info(String.format("Results for query %d/%d: ", i, queries.length) + results.toString());
             }
             if (runtimeMode == RuntimeMode.CORRECTNESS) {
-                final List<MSTuple3> bruteForceResult = new BruteForce().kNN(K, queries[i]);
-                bruteForceResult.sort(Comparator.comparingDouble(MSTuple3::distance));
+                final List<CandidateMVSubsequence> bruteForceResult = new BruteForce().kNN(K, queries[i]);
+                bruteForceResult.sort(Comparator.comparingDouble(CandidateMVSubsequence::totalDistance));
                 for (int j = 0; j < K; j++) {
                     if (!bruteForceResult.get(j).equals(results.get(j))) {
                         logger.severe(bruteForceResult.get(j).toString() + " != " + results.get(j).toString());
@@ -151,7 +157,7 @@ public abstract class Algorithm {
         }
     }
 
-    public abstract List<MSTuple3> kNN(int k, double[][] query);
+    public abstract List<CandidateMVSubsequence> kNN(int k, double[][] query);
 
     public String getIndexPath() {
 //        Make folder index_caches if it does not exist
@@ -205,5 +211,33 @@ public abstract class Algorithm {
 //        Get the size of the file
         long size = file.length();
         return size / 1000000d;
+    }
+
+    /**
+     * Filter our false positives by computing the actual distances with the MASS algorithm.
+     */
+    public static ArrayList<CandidateMVSubsequence> postFilter(double[][] query, List<CandidateSegment> candidateSegments,
+                                                        int k, double initialKthDistance) {
+        // Collect as map from timeseries to list of segments
+        final Map<Integer, List<CandidateSegment>> groupedCandidateSegments = CandidateSegment.groupByTimeSeriesIndex(candidateSegments);
+
+        final double[] querySumOfSquares = DFTUtils.getSumsOfSquares(query);
+        final double[][][] qNorms = DFTUtils.getQNorms(query);
+
+        final PriorityBlockingQueue<CandidateMVSubsequence> topK = new PriorityBlockingQueue<>(k, CandidateMVSubsequence.compareByTotalDistanceReversed());
+
+        lib.getStream(groupedCandidateSegments.entrySet()).forEach(entry -> {
+            final List<CandidateSegment> segments = entry.getValue();
+
+            final double threshold = topK.size() == k ? topK.peek().totalDistance() : initialKthDistance;
+            final List<CandidateSegment> newSegments = DFTUtils.optimizeCandidates(segments, threshold);
+
+//            Compute the actual distances with MASS
+            DFTUtils.updateTopKWithMASS(newSegments, qNorms, querySumOfSquares, topK, k);
+        });
+
+        final ArrayList<CandidateMVSubsequence> result = new ArrayList<>(topK);
+        result.sort(CandidateMVSubsequence.compareByTotalDistance());
+        return result;
     }
 }

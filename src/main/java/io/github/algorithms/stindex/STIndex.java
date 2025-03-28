@@ -2,8 +2,6 @@ package io.github.algorithms.stindex;
 
 import io.github.algorithms.msindex.BoundedPriorityQueue;
 import io.github.utils.*;
-import io.github.utils.*;
-import io.github.io.DataManager;
 import com.github.davidmoten.rtreemulti.Entry;
 import com.github.davidmoten.rtreemulti.Node;
 import com.github.davidmoten.rtreemulti.RTree;
@@ -46,18 +44,17 @@ public class STIndex {
         return q.asOrderedList();
     }
 
-    public void getBelowThreshold(double[] query, double threshold, ArrayList<SSEntry> belowThreshold, int dimension) {
+    public List<CandidateSegment> getBelowThreshold(double[] query, double threshold) {
         final double[] queryCoefficients = DFTUtils.computeCoefficients(query);
         final Point transformedPoint = Point.create(queryCoefficients);
 
+        final List<CandidateSegment> out = new ArrayList<>();
+
         final Iterable<Entry<CandidateSegment, Geometry>> result = tree.search(transformedPoint, threshold);
         for (Entry<CandidateSegment, Geometry> entry : result) {
-            final CandidateSegment falItem = entry.value();
-
-            for (int i = falItem.getStart(); i <= falItem.getEnd(); i++) {
-                belowThreshold.add(new SSEntry(falItem.getTimeSeriesIndex(), i, dimension));
-            }
+            out.add(entry.value());
         }
+        return out;
     }
 
     private long recursiveTreeMemoryUsage(Node<CandidateSegment, Geometry> node) {

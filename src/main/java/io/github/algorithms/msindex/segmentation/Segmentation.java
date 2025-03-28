@@ -1,7 +1,6 @@
 package io.github.algorithms.msindex.segmentation;
 
 import io.github.utils.*;
-import io.github.utils.*;
 import io.github.utils.rtreemulti.Entry;
 import io.github.algorithms.msindex.MinimumBoundingRectangle;
 import io.github.utils.rtreemulti.geometry.Geometry;
@@ -48,7 +47,7 @@ public abstract class Segmentation {
      */
     private static Entry<CandidateSegment, Geometry> createTreeEntry(double[][] subtrail,
                                                                                     int tsIdx, int start, int end,
-                                                                                    LandmarkPortfolio[] portfolios) {
+                                                                                    LandmarkPortfolio[] subPortfolios) {
 //        Checks
         final int length = end - start + 1;
         if (length < 1) {
@@ -57,13 +56,13 @@ public abstract class Segmentation {
         if (subtrail.length != length) {
             throw new IllegalArgumentException("Length of dfts must be equal to the segment length");
         }
-        if (portfolios != null && subtrail.length != portfolios.length) {
+        if (subPortfolios != null && subtrail.length != subPortfolios.length) {
             throw new IllegalArgumentException("Length of portfolios must be equal to the segment length");
         }
         //        Edge-case
         if (length == 1) {
             final double[] point = subtrail[0];
-            final LandmarkMBR landmarkMBR = portfolios == null ? null: new LandmarkMBR(portfolios[0]);
+            final LandmarkMBR landmarkMBR = subPortfolios == null ? null: new LandmarkMBR(subPortfolios[0]);
             final MinimumBoundingRectangle mbr = new MinimumBoundingRectangle(point, point, landmarkMBR);
             return Entry.entry(new CandidateSegment(tsIdx, start, end, mbr), mbr);
         }
@@ -72,7 +71,7 @@ public abstract class Segmentation {
         final double[] segMin = lib.minimum(subtrail);
         final double[] segMax = lib.maximum(subtrail);
 
-        final LandmarkMBR landmarkMBR = portfolios == null ? null: new LandmarkMBR(portfolios);
+        final LandmarkMBR landmarkMBR = subPortfolios == null ? null: new LandmarkMBR(subPortfolios, 0, subPortfolios.length);
 
 //        Create the entry
         final MinimumBoundingRectangle mbr = new MinimumBoundingRectangle(segMin, segMax, landmarkMBR);

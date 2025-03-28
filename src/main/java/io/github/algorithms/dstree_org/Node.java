@@ -5,7 +5,7 @@ import de.ruedigermoeller.serialization.FSTObjectOutput;
 import lombok.Getter;
 import lombok.Setter;
 import io.github.algorithms.dstree_org.util.CalcUtil;
-import io.github.algorithms.dstree_org.util.TimeSeries;
+import io.github.utils.CandidateSubsequence;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -56,7 +56,7 @@ public class Node implements Serializable {
     Node right;
 
     @Getter
-    ArrayList<TimeSeries> timeSeriesList = new ArrayList<>();
+    ArrayList<CandidateSubsequence> candidateSubsequenceList = new ArrayList<>();
 
     public static int maxSegmentLength = 2;
     public static int maxValueLength = 15;
@@ -127,8 +127,8 @@ public class Node implements Serializable {
         return (left == null && right == null);
     }
 
-    public void append(TimeSeries timeSeries) throws IOException {
-        timeSeriesList.add(timeSeries);
+    public void append(CandidateSubsequence candidateSubsequence) throws IOException {
+        candidateSubsequenceList.add(candidateSubsequence);
     }
 
     public static double hsTradeOffFactor = 2;
@@ -136,12 +136,12 @@ public class Node implements Serializable {
     @Getter
     List<double[]> tss = new ArrayList<>();
 
-    public void insert(TimeSeries timeSeries) throws IOException {
+    public void insert(CandidateSubsequence candidateSubsequence) throws IOException {
         //update statistics dynamically for leaf and branch
-        updateStatistics(timeSeries.getTs());
+        updateStatistics(candidateSubsequence.getData());
 
         if (isTerminal()) {
-            append(timeSeries);            //append to file first
+            append(candidateSubsequence);            //append to file first
             if (threshold == size) {   //do split
                 splitPolicy = new SplitPolicy();
                 splitPolicy.setSeriesSegmentSketcher(this.getSeriesSegmentSketcher());
@@ -255,18 +255,18 @@ public class Node implements Serializable {
                 right.initSegments(childNodePoint);
                 right.isLeft = false;
 
-                for (TimeSeries ss : timeSeriesList) {
-                    if (splitPolicy.routeToLeft(ss.getTs()))
+                for (CandidateSubsequence ss : candidateSubsequenceList) {
+                    if (splitPolicy.routeToLeft(ss.getData()))
                         left.insert(ss);
                     else
                         right.insert(ss);
                 }
             }
         } else { //not terminal
-            if (splitPolicy.routeToLeft(timeSeries.getTs()))
-                left.insert(timeSeries);
+            if (splitPolicy.routeToLeft(candidateSubsequence.getData()))
+                left.insert(candidateSubsequence);
             else
-                right.insert(timeSeries);
+                right.insert(candidateSubsequence);
         }
     }
 

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.github.algorithms.AlgorithmType;
-import io.github.algorithms.msindex.PartitionStrategy;
+import io.github.algorithms.msindex.DimensionWeightingStrategy;
 import io.github.algorithms.msindex.segmentation.SegmentMethods;
 import org.jtransforms.fft.DoubleFFT_1D;
 
@@ -52,8 +52,9 @@ public class Parameters {
     public static double datasetSize;
     public static int nQueryChannels;
     public static int[] selectedVariatesIdx;
-    public static PartitionStrategy partitionStrategy = PartitionStrategy.VARIANCE;
+    public static DimensionWeightingStrategy dimensionWeightingStrategy = DimensionWeightingStrategy.VARIANCE;
     public static boolean queryFromIndexed = true;
+    public static int kvMatchSegmentDivisor = 1;
 
     @Hide
     public static Random random;
@@ -84,6 +85,9 @@ public class Parameters {
     public static double[][] precomputedAnglesCos;
     @Hide
     public static double[][] precomputedAnglesSin;
+
+    public static Long memoryUsageBeforeIndexing;
+    public static Long memoryUsageAfterIndexing;
 
 
     //    Run Statistics (about the run)
@@ -139,7 +143,7 @@ public class Parameters {
             setLeafSize(nSubsequences, indexLeafSizePercentage);
         }
 
-        if (Arrays.asList(AlgorithmType.MASS,AlgorithmType.MSINDEX).contains(algorithmType)) {
+        if (!algorithmType.equals(AlgorithmType.BRUTE_FORCE)) {
             setPrecomputedFFTs();
         }
         if (Arrays.asList(AlgorithmType.ST_INDEX,AlgorithmType.MSINDEX).contains(algorithmType)) {
@@ -200,6 +204,11 @@ public class Parameters {
     private static void setFFTConfig(String configPath) {
         Logger.getGlobal().info("Setting FFT config");
 
+        if (fftCoveredDistance > 1){
+            Logger.getGlobal().severe("FFT covered distance should be a percentage, not a value greater than 1");
+            exit(1);
+        }
+
 //        Read the config file (json)
         ObjectMapper mapper = new ObjectMapper();
         String path = normalize ? configPath + "/diffs_norm.json" : configPath + "/diffs.json";
@@ -226,10 +235,9 @@ public class Parameters {
                 }
             }
         } catch (IOException e) {
-            Logger.getGlobal().info("Could not read the FFT config file, setting default coefficients");
+            Logger.getGlobal().severe("Could not read the FFT config file, reverting to default coefficients");
             fftCoveredDistance = -1;
         }
-
 
 //            Get the coefficients to use
         if (fftCoveredDistance < 0){
@@ -291,46 +299,6 @@ public class Parameters {
     public static void newRandom() {
         random = new Random(seed);
     }
-
-    public enum DatasetType {
-        STOCKS,
-        STOCKS_NORMALIZED,
-        WEATHER,
-        AUSLAN,
-        HUGA,
-        SYNTHETIC,
-        SYNTHETIC_BIG,
-        ARTICULARYWORDRECOGNITION,
-        ATRIALFIBRILLATION,
-        BASICMOTIONS,
-        CHARACTERTRAJECTORIES,
-        CRICKET,
-        DUCKDUCKGEESE,
-        EIGENWORMS,
-        EPILEPSY,
-        ETHANOLCONCENTRATION,
-        ERING,
-        FACEDETECTION,
-        FINGERMOVEMENTS,
-        HANDMOVEMENTDIRECTION,
-        HANDWRITING,
-        HEARTBEAT,
-        JAPANESEVOWELS,
-        LIBRAS,
-        LSST,
-        INSECTWINGBEAT,
-        MOTORIMAGERY,
-        NATOPS,
-        PENDIGITS,
-        PEMS_SF,
-        PHONEMESPECTRA,
-        RACKETSPORTS,
-        SELFREGULATIONSCP1,
-        SELFREGULATIONSCP2,
-        SPOKENARABICDIGITS,
-        STANDWALKJUMP,
-        UWAVEGESTURELIBRARY
-        }
 
     public enum RuntimeMode {
         FULL, // Build index, store, and query

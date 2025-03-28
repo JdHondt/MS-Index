@@ -224,7 +224,13 @@ public class DFTUtils {
         return out;
     }
 
-    public static double[] MASS(CandidateSegment candidateSegment, double[][][] qNorms, double[] querySumOfSquares) {
+    public static double[][] MASS(CandidateSegment candidateSegment, double[][] query){
+        final double[] querySumOfSquares = getSumsOfSquares(query);
+        final double[][][] qNorms = getQNorms(query);
+        return MASS(candidateSegment, qNorms, querySumOfSquares);
+    }
+
+    public static double[][] MASS(CandidateSegment candidateSegment, double[][][] qNorms, double[] querySumOfSquares) {
 //        Unpack candidate segment
         final int timeSeriesIndex = candidateSegment.getTimeSeriesIndex();
         Range segmentRange = candidateSegment.getSegmentRange();
@@ -236,7 +242,8 @@ public class DFTUtils {
 
         final int qNormIndex = Integer.numberOfTrailingZeros(segmentRange.getPower2Length()) - qLenLog2;
 
-        final double[] distances = new double[rangeLength];
+//        Distances per dimension (range x dim)
+        final double[][] distances = new double[rangeLength][channels];
         for (int d : selectedVariatesIdx) {
             final double[] qNorm = qNorms[d][qNormIndex];
 
@@ -247,7 +254,7 @@ public class DFTUtils {
 //            Compute the distances
             final double[] dimDistances = MASS(candidateSegment, timeseriesFFT, qNorm, querySumOfSquares, d);
             for (int i = 0; i < rangeLength; i++) {
-                distances[i] += dimDistances[i];
+                distances[i][d] = dimDistances[i];
             }
         }
 
@@ -295,16 +302,21 @@ public class DFTUtils {
 
 
     public static void updateTopKWithMASS(List<CandidateSegment> candidateSegments, double[][][] qNorms, double[] querySumOfSquares,
-                                          PriorityBlockingQueue<MSTuple3> topK, int k){
+                                          PriorityBlockingQueue<CandidateMVSubsequence> topK, int k){
         for (CandidateSegment segment: candidateSegments){
-            final double[] distances = DFTUtils.MASS(segment, qNorms, querySumOfSquares);
+//            Distances over dimensions (range x dim)
+            final double[][] distances = DFTUtils.MASS(segment, qNorms, querySumOfSquares);
             final int start = segment.getStart();
+
+            final double[] totalDistances = lib.rowSum(distances); // length = rangeLength
 
 //                Update topk
             for (int i = 0; i < distances.length; i++) {
-                final double distance = distances[i];
-                if (topK.size() < k || distance < topK.peek().distance()) {
-                    topK.add(new MSTuple3(distance, segment.getTimeSeriesIndex(), start + i));
+                final double totalDistance = totalDistances[i];
+                if (topK.size() < k || totalDistance < topK.peek().totalDistance()) {
+                    CandidateMVSubsequence candidateSubsequence = new CandidateMVSubsequence(segment.getTimeSeriesIndex(), start + i, totalDistance);
+                    candidateSubsequence.setDimDistances(distances[i]);
+                    topK.add(candidateSubsequence);
                     if (topK.size() > k) {
                         topK.poll();
                     }

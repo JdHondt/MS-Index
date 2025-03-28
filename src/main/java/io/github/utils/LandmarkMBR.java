@@ -1,5 +1,6 @@
 package io.github.utils;
 
+import lombok.Setter;
 import org.apache.commons.math3.util.FastMath;
 
 import java.io.DataInputStream;
@@ -17,17 +18,29 @@ public class LandmarkMBR implements Serializable {
     final double[][] minDistances; // shape: [dimensions, #landmarks]
     final double[][] maxDistances; // shape: [dimensions, #landmarks]
     final int[] chosenLandmarks;
-    LandmarkPortfolio[] portfolios = null;
+    @Setter LandmarkPortfolio leafPortfolio;
 
     public LandmarkMBR(LandmarkPortfolio portfolio){
-        this.portfolios = new LandmarkPortfolio[]{portfolio};
         minDistances = portfolio.getLandmarkDistances();
         maxDistances = portfolio.getLandmarkDistances();
         chosenLandmarks = portfolio.getClosestLandmarks();
+        leafPortfolio = portfolio;
     }
 
-    public LandmarkMBR(LandmarkPortfolio[] portfolios) {
-        this.portfolios = portfolios;
+    public LandmarkMBR(double[][] minDistances, double[][] maxDistances, int[] chosenLandmarks) {
+        this.minDistances = minDistances;
+        this.maxDistances = maxDistances;
+        this.chosenLandmarks = chosenLandmarks;
+    }
+
+    public LandmarkMBR(LandmarkPortfolio[] portfolios, int start, int end) {
+        if (portfolios.length == 0) {
+            throw new IllegalArgumentException("Cannot create an MBR from an empty list of portfolios.");
+        }
+
+        if (start < 0 || end > portfolios.length) {
+            throw new IllegalArgumentException("Invalid start or end index.");
+        }
 
 //        Edge case: if there is only one portfolio, we can use the closest landmark for each dimension
         if (portfolios.length == 1) {
@@ -37,9 +50,11 @@ public class LandmarkMBR implements Serializable {
             return;
         }
 
-        double[][][] distances = new double[portfolios.length][][];
-        for (int i = 0; i < portfolios.length; i++) {
-            distances[i] = portfolios[i].getLandmarkDistances();
+        final int n = end - start;
+
+        double[][][] distances = new double[n][][]; // shape: [nPortfolios][dimensions][#landmarks]
+        for (int i = 0; i < n; i++) {
+            distances[i] = portfolios[i + start].getLandmarkDistances();
         }
         minDistances = lib.minimum(distances);
         maxDistances = lib.maximum(distances);
@@ -53,7 +68,7 @@ public class LandmarkMBR implements Serializable {
 
 //            Count the number of points that are closest to each landmark
             final int[] counts = new int[kMeansClusters];
-            for (int i = 0; i < portfolios.length; i++) {
+            for (int i = start; i < end; i++) {
                 final int closestLandmark = portfolios[i].getClosestLandmark(d);
                 counts[closestLandmark]++;
             }
@@ -84,12 +99,37 @@ public class LandmarkMBR implements Serializable {
         }
     }
 
-    public DistanceBound getDistance(LandmarkMBR otherMBR) {
-        if (otherMBR.portfolios.length > 1){
-            throw new IllegalArgumentException("LandmarkMBR.getDistance() only supports one portfolio");
+    public static LandmarkMBR merge(List<LandmarkMBR> mbrs) {
+        if (mbrs.isEmpty()) {
+            return null;
         }
 
-        return getDistance(otherMBR.portfolios[0]);
+//        Iteratively merge the MBRs
+        LandmarkMBR merged = mbrs.get(0);
+        for (int i = 1; i < mbrs.size(); i++) {
+            merged = merge(merged, mbrs.get(i));
+        }
+        return merged;
+    }
+
+    /**
+     * Merge two MBRs by deriving the minimum and maximum from their min and max distances
+     * @param left MBR
+     * @param right MBR
+     * @return Merged MBR
+     */
+    public static LandmarkMBR merge(LandmarkMBR left, LandmarkMBR right) {
+        double[][] minDistances = new double[channels][kMeansClusters];
+        double[][] maxDistances = new double[channels][kMeansClusters];
+        int[] chosenLandmarks = new int[channels];
+        for (int d = 0; d < channels; d++) {
+            for (int i = 0; i < kMeansClusters; i++) {
+                minDistances[d][i] = FastMath.min(left.minDistances[d][i], right.minDistances[d][i]);
+                maxDistances[d][i] = FastMath.max(left.maxDistances[d][i], right.maxDistances[d][i]);
+            }
+            chosenLandmarks[d] = left.minDistance(d) < right.minDistance(d) ? left.chosenLandmarks[d] : right.chosenLandmarks[d];
+        }
+        return new LandmarkMBR(minDistances, maxDistances, chosenLandmarks);
     }
 
     public double minDistance(int d) {
@@ -98,6 +138,14 @@ public class LandmarkMBR implements Serializable {
 
     public double maxDistance(int d) {
         return maxDistances[d][chosenLandmarks[d]];
+    }
+
+    public DistanceBound getDistance(LandmarkMBR otherMBR) {
+        if (otherMBR.leafPortfolio == null){
+            throw new IllegalArgumentException("The other MBR does not have a leaf portfolio, which is required.");
+        }
+
+        return getDistance(otherMBR.leafPortfolio);
     }
 
     public DistanceBound getDistance(LandmarkPortfolio queryPortfolio) {
@@ -136,32 +184,5 @@ public class LandmarkMBR implements Serializable {
         }
     }
 
-    /**
-     * Combine two LandmarkMBRs into a new LandmarkMBR turning it into a portfolio
-     * @param other
-     * @return
-     */
-    public LandmarkMBR add(LandmarkMBR other){
-        LandmarkPortfolio[] newPortfolios = new LandmarkPortfolio[portfolios.length + other.portfolios.length];
-        System.arraycopy(portfolios, 0, newPortfolios, 0, portfolios.length);
-        System.arraycopy(other.portfolios, 0, newPortfolios, portfolios.length, other.portfolios.length);
-        return new LandmarkMBR(newPortfolios);
-    }
 
-    public static LandmarkMBR merge(List<LandmarkMBR> mbrs) {
-        if (mbrs.isEmpty()) {
-            return null;
-        }
-
-//        Merge all portfolios into a single portfolio
-        final int pSize = mbrs.stream().mapToInt(m -> m.portfolios.length).sum();
-        LandmarkPortfolio[] newPortfolios = new LandmarkPortfolio[pSize];
-        int i = 0;
-        for (LandmarkMBR mbr : mbrs) {
-            System.arraycopy(mbr.portfolios, 0, newPortfolios, i, mbr.portfolios.length);
-            i += mbr.portfolios.length;
-        }
-
-        return new LandmarkMBR(newPortfolios);
-    }
 }

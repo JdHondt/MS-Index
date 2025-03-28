@@ -27,6 +27,8 @@ The parameters in the `run.sh` script are as follows:
 - `experimentId`: Experiment identifier (default: 1)
 - `seed`: Seed for random number generation (default: 1)
 - `parallel`: Whether to run in parallel (default: false)
+- `queryFromIndexed`: Whether to generate queries from indexed data (default: false)
+- `queryNoiseEps`: Level of noise added to queries when generated from indexed data (default: 0.1)
 
 ## Data
 Instructions on how to get the data from the paper can be found in [data/instructions.md](data/instructions.md).

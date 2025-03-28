@@ -2,6 +2,7 @@ package io.github.io;
 
 import io.github.utils.Range;
 
+import java.util.HashSet;
 import java.util.stream.IntStream;
 
 import static io.github.utils.Parameters.*;
@@ -16,6 +17,10 @@ public class DataManager {
     public static double[][][] squaredSums;
     public static double[][][] queries;
     public static int[] timeSeriesStarts;
+    public static int[] supportedDimensions;
+    private static int variatesUsedInQuery;
+    public static HashSet<Integer> selectedQueriesSet;
+    public static HashSet<Integer> selectedVariatesSet;
 
     public static void computeMeansStds() {
         timeSeriesStarts = new int[N];

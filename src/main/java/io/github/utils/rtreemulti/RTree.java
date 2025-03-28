@@ -538,18 +538,14 @@ public final class RTree<T extends Serializable, S extends Geometry> implements 
 
 //            Determine the number of partitions/slices on each dimension based on the distance-based weights
             double[] weights;
-            switch (partitionStrategy) {
+            switch (dimensionWeightingStrategy) {
                 case EQUAL: weights = equalWeights(objects, context); break;
                 case RANGE: weights = rangeBasedWeights(objects, context); break;
                 case VARIANCE: weights = varianceBasedWeights(objects, context); break;
-                default: throw new IllegalArgumentException("Unknown missing value strategy: " + partitionStrategy);
+                default: throw new IllegalArgumentException("Unknown missing value strategy: " + dimensionWeightingStrategy);
             }
             final int[] nSplits = weightsToSplits(weights, context, nodeCount);
             final int[] splitOrder = lib.argsort(nSplits, false);
-
-            if (isLeaf){
-                Logger.getGlobal().info("Split distribution:" + Arrays.toString(nSplits));
-            }
 
             List<List<? extends HasGeometry>> slices = split(objects, context, nSplits, splitOrder, 0, capacity);
 

@@ -4,6 +4,7 @@ import io.github.algorithms.Algorithm;
 import io.github.algorithms.AlgorithmType;
 import io.github.algorithms.BruteForce;
 import io.github.algorithms.dstree_org.MVDSTreeOrg;
+import io.github.algorithms.kvmatch.MultivariateKVMatch;
 import io.github.algorithms.msindex.MSIndex;
 import io.github.io.DataLoader;
 import io.github.io.DataManager;
@@ -16,6 +17,7 @@ import java.util.*;
 import java.util.logging.*;
 
 import static java.lang.System.exit;
+import static io.github.io.DataManager.selectedVariatesSet;
 import static io.github.utils.Parameters.*;
 
 public class Main {
@@ -87,7 +89,7 @@ public class Main {
             qLen = 730;
             maxM = 32000;
             K = 1;
-            normalize = true;
+            normalize = false;
             nQueries = 100;
             runtimeMode = RuntimeMode.FULL_NO_STORE;
             experimentId = 0;
@@ -141,6 +143,11 @@ public class Main {
             }
         }
 
+        selectedVariatesSet = new HashSet<>();
+        for (int i : selectedVariatesIdx) {
+            selectedVariatesSet.add(i);
+        }
+
         // Print parameters
         logger.info("Parameters:");
         logger.info(Parameters.printParams());
@@ -163,6 +170,9 @@ public class Main {
                 break;
             case BRUTE_FORCE:
                 algorithm = new BruteForce();
+                break;
+            case KV_MATCH:
+                algorithm = new MultivariateKVMatch();
                 break;
             default:
                 throw new RuntimeException("Unknown algorithm type: " + algorithmType);

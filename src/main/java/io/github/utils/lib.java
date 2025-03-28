@@ -38,14 +38,21 @@ public class lib {
 
     public static double std(double SS, double LS, int n) {
         double val = SS / n - pow2(LS / n);
-        if (val < 1e-12) { // for floating point errors
+        if (val < 1e-12) {
             return 0;
         }
         return FastMath.sqrt(val);
     }
 
     public static double std(double[] values) {
-        double var = variance(values);
+        double sum = 0;
+        double sumSquare = 0;
+        for (double value : values) {
+            sum += value;
+            sumSquare += value * value;
+        }
+        double avg = sum / values.length;
+        double var = sumSquare / values.length - avg * avg;
         var = max(var + 1E-16, -var); // for floating point errors
         return FastMath.sqrt(var);
     }
@@ -231,6 +238,8 @@ public class lib {
         return c;
     }
 
+
+
 //    Get the element-wise maximum of a 3D array
     public static double[][] maximum(double[][][] a) {
         if (a.length == 1){
@@ -283,21 +292,19 @@ public class lib {
 
     public static double[] znorm(double[] v) {
         double[] z = v.clone();
-        double LS = 0;
-        double SS = 0;
+        double sum = 0;
+        double sumSquare = 0;
         for (double value : z) {
-            LS += value;
-            SS += value * value;
+            sum += value;
+            sumSquare += value * value;
         }
-        final double avg = LS / v.length;
-        double std = std(SS, LS, v.length);
-
-        if (std == 0) {
-            std = 1;
-        }
+        double avg = sum / z.length;
+        double var = sumSquare / z.length - avg * avg;
+        var = max(var + 1E-16, -var); // for floating point errors
+        double stdev = FastMath.sqrt(var);
 
         for (int i = 0; i < z.length; i++) {
-            z[i] = (z[i] - avg) / std;
+            z[i] = (z[i] - avg) / stdev;
             if (Double.isNaN(z[i])) {
                 System.out.println("debug: NaN result of znorm");
             }
@@ -317,6 +324,26 @@ public class lib {
         int out = 1;
         for (int v : in) {
             out *= v;
+        }
+        return out;
+    }
+
+//    For each row in a 2D array, compute the sum of the elements
+    public static double[] rowSum(double[][] in){
+        double[] out = new double[in.length];
+        for (int i = 0; i < in.length; i++) {
+            out[i] = Arrays.stream(in[i]).sum();
+        }
+        return out;
+    }
+
+//    For each column in a 2D array, compute the sum of the elements
+    public static double[] colSum(double[][] in){
+        double[] out = new double[in[0].length];
+        for (int i = 0; i < in[0].length; i++) {
+            for (double[] doubles : in) {
+                out[i] += doubles[i];
+            }
         }
         return out;
     }
